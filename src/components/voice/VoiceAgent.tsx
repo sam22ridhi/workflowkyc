@@ -1,0 +1,12 @@
+import { useState } from 'react';
+import { Check, Mic, X } from 'lucide-react';
+
+interface VoiceAgentProps {
+  onClose: () => void;
+}
+
+export function VoiceAgent({ onClose }: VoiceAgentProps) {
+  const [action, setAction] = useState<'idle' | 'preview' | 'done'>('idle');
+  const [channel, setChannel] = useState('Email');
+  return <div className="voice-overlay"><div className="voice-modal"><button className="close-modal" onClick={onClose}><X size={18} /></button><div className={`voice-orb ${action === 'idle' ? 'voice-listening' : ''}`}><Mic size={29} /></div><span className="section-label">KARYAKARTA VOICE</span><h3>{action === 'done' ? 'Consider it handled.' : action === 'preview' ? 'Ready to send this follow-up?' : 'What would you like me to handle?'}</h3>{action === 'done' ? <><p>ABC Enterprises has been contacted and the case has been updated.</p><div className="voice-results"><span><Check size={14} /> Merchant contacted</span><span><Check size={14} /> Address proof requested</span><span><Check size={14} /> Case updated</span></div><button className="button button-blue button-full" onClick={onClose}>Done</button></> : action === 'preview' ? <><p>I found the unresolved address mismatch and prepared a merchant follow-up.</p><div className="voice-action-preview"><span><small>ACTION</small><strong>Send merchant follow-up</strong></span><span><small>REQUEST</small><strong>Address proof</strong></span><span><small>CHANNEL</small><div className="channel-options">{['Email', 'WhatsApp', 'Voice'].map((item) => <button key={item} className={channel === item ? 'selected' : ''} onClick={() => setChannel(item)}>{item}</button>)}</div></span></div><div className="voice-action-buttons"><button className="button button-outline" onClick={() => setAction('idle')}>Cancel</button><button className="button button-blue" onClick={() => setAction('done')}><Check size={15} /> Send via {channel}</button></div></> : <><p>Try saying “Chase ABC Enterprises for their address proof.”</p><div className="voice-suggestion"><Mic size={15} /> Chase ABC Enterprises for their address proof.</div><div className="voice-suggested-actions"><button onClick={() => setAction('preview')}>Chase a merchant</button><button onClick={() => setAction('preview')}>Explain a case</button><button onClick={() => setAction('preview')}>Summarize pending cases</button></div><button className="button button-blue button-full" onClick={() => setAction('preview')}><Mic size={16} /> Start listening</button></>}</div></div>;
+}
