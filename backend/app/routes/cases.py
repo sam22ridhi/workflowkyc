@@ -172,8 +172,34 @@ ACTIONS = {
 }
 
 
+# Who may do what. Decisions are human-only: the agent (and the merchant) can never approve, submit or send back.
+# Chasing the merchant is not a decision, so the agent may do it. Person-level four-eyes (maker != checker) needs real
+# user identities; the demo has roles only, so it enforces role and stage.
+ACTION_ROLES = {
+    "voice": {"kam", "agent"}, "request": {"kam", "agent"},
+    "approve": {"kam"}, "submit_to_compliance": {"kam"},
+    "send_back": {"compliance"}, "compliance_approve": {"compliance"},
+}
+
+
+def _authorise_action(case: Case, body: ActionRequest) -> None:
+    allowed = ACTION_ROLES[body.action]
+    if body.actor not in allowed:
+        who = " or ".join(sorted(allowed))
+        raise HTTPException(403, f"'{body.actor}' cannot perform '{body.action}'. Only {who} can. "
+                                 "Decisions are made by people; the agent cannot approve or reject anything.")
+    if body.action in {"approve", "submit_to_compliance"}:
+        if case.route is None:
+            raise HTTPException(409, "AI verification has not finished for this case yet, so it cannot be approved.")
+        if case.stage >= 5:
+            raise HTTPException(409, "This case has already been submitted to Compliance.")
+    if body.action in {"send_back", "compliance_approve"} and case.stage != 5:
+        raise HTTPException(409, "Compliance can act only after the KAM has submitted the case (stage 5).")
+
+
 def _do_action(case_id: str, body: ActionRequest, session: Session):
     case = get_case(session, case_id)
+    _authorise_action(case, body)
     _, title, detail, status, stage, tone = ACTIONS[body.action]
     if body.channel:
         detail += f" Channel: {body.channel}."

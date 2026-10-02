@@ -102,7 +102,7 @@ shows `failed` but everything else works.
 | `POST /cases/{id}/ask` | Case Q&A over Cognee (answer + source documents; 503 if unavailable) |
 | `POST /cases/{id}/cross-check` | The 10 checks + AUTO/ASK/ESCALATE triage (returns `issues` for n8n) |
 | `GET /cases/{id}/crm-form`, `POST /cases/{id}/crm-form/override` | Auto-filled CRM form with citations/conflicts; audited overrides |
-| `POST /cases/{id}/action` | voice / request / approve / submit_to_compliance / send_back / compliance_approve |
+| `POST /cases/{id}/action` | voice / request / approve / submit_to_compliance / send_back / compliance_approve. **Role and stage guarded**: the agent and merchant get 403 on decisions; Compliance acts only at stage 5 (after the KAM submits); approval needs finished verification |
 | `GET /cases/{id}/events`, `GET /events` | Server-sent events (audit trail); `?after=<id>` to replay |
 | `GET /mock-registry/{id}` | The MOCK MCA / GST / penny-drop record used by the checks |
 | `GET /cases/{id}/voice-chase/context`, `POST /cases/{id}/voice-chase/result` | Voice agent variables + opening line (merchant-fixable items only); call outcome (stored as a call record, shown on the case) |
@@ -121,7 +121,7 @@ shows `failed` but everything else works.
   structured summary of fields and checks; cognify once per batch. Cognee answers questions; it never decides pass/fail.
 
 ## 6. Tests
-Backend: `.venv\Scripts\python.exe -m pytest -q` (62 tests): validators, schemas, box location on real Sarvam fixtures,
+Backend: `.venv\Scripts\python.exe -m pytest -q` (64 tests): validators, schemas, box location on real Sarvam fixtures,
 cross-checks on the planted issues, CRM form, memory (fake store), Cognee outage, seeded-case coherence, and an
 end-to-end integration test on the 8 real PDFs with recorded Sarvam responses and a fake Cognee.
 Frontend: `cd workflowkyc && npm test` (21 render tests, jsdom): the dashboard, case overview, upload screen and live

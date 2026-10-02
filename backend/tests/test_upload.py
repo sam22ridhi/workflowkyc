@@ -86,3 +86,32 @@ def test_seeded_demo_cases_have_a_coherent_checklist(client):
     rows = {r["id"]: r for r in client.get("/api/cases").json()["data"]["items"]}
     assert rows["KYB-20818"]["docProgress"] == {"uploaded": 7, "required": 7, "processed": 7}
     assert rows["KYB-20817"]["docProgress"]["uploaded"] == rows["KYB-20817"]["docProgress"]["required"] - 1
+
+
+def test_only_people_can_decide_and_stages_are_enforced(client):
+    # the agent (and the merchant) can never approve, submit or send back
+    for actor in ("agent", "merchant"):
+        for action in ("approve", "submit_to_compliance", "send_back", "compliance_approve"):
+            r = client.post("/api/cases/KYB-20816/action", json={"action": action, "actor": actor})
+            assert r.status_code == 403 and "cannot approve or reject anything" in r.json()["detail"], (actor, action)
+    # a KAM cannot use the checker's actions and vice versa
+    assert client.post("/api/cases/KYB-20816/action", json={"action": "compliance_approve", "actor": "kam"}).status_code == 403
+    assert client.post("/api/cases/KYB-20816/action", json={"action": "approve", "actor": "compliance"}).status_code == 403
+    # chasing is not a decision: the agent may do it
+    assert client.post("/api/cases/KYB-20816/action", json={"action": "request", "actor": "agent"}).status_code == 200
+
+    # the checker cannot act before the KAM has submitted; the KAM cannot approve before verification finished
+    assert client.post("/api/cases/KYB-20816/action", json={"action": "compliance_approve", "actor": "compliance"}).status_code == 409
+    assert client.post("/api/cases/KYB-20818/action", json={"action": "approve", "actor": "kam"}).status_code == 200      # seeded AUTO case, stage 4
+    assert client.post("/api/cases/KYB-20818/action", json={"action": "approve", "actor": "kam"}).status_code == 409      # already submitted
+    r = client.post("/api/cases/KYB-20818/action", json={"action": "compliance_approve", "actor": "compliance"})
+    assert r.status_code == 200 and r.json()["data"]["stage"] == 6
+    titles = [t["title"] for t in r.json()["data"]["timeline"]]
+    assert titles[-2:] == ["KAM approved & submitted to Compliance", "Compliance approved"]
+    # the refused attempts left no trace on the timeline of the case they targeted
+    assert "KAM approved & submitted to Compliance" not in [t["title"] for t in client.get("/api/cases/KYB-20816").json()["data"]["timeline"]]
+
+
+def test_case_without_verification_cannot_be_approved(client):
+    r = client.post("/api/cases/KYB-20815/action", json={"action": "approve", "actor": "kam"})     # seeded, no checks yet
+    assert r.status_code == 409 and "has not finished" in r.json()["detail"]
