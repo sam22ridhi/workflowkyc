@@ -7,7 +7,7 @@ interface CaseDetailScreenProps {
   caseData: MerchantCase;
   onBack: () => void;
   onSwitchRole: () => void;
-  onAction: (action: 'request' | 'voice' | 'approve') => void;
+  onAction: (action: 'request' | 'voice' | 'approve' | 'send_back' | 'compliance_approve', channel?: string) => void | Promise<void>;
 }
 
 export function CaseDetailScreen({ caseData, onBack, onSwitchRole, onAction }: CaseDetailScreenProps) {

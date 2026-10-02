@@ -21,3 +21,16 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+backend/.venv
+backend/storage
+backend/*.db
+__pycache__
+backend/debug_out
+
+backend/.venv-local
+backend/cognee_data
+
+# old PAN prototype: local data
+karyakarta-backend/karyakarta-backend/*.db
+karyakarta-backend/karyakarta-backend/storage

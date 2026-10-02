@@ -1,0 +1,4 @@
+# Optional: only for COGNEE_MODE=local (demo-day fallback). Heavy install; use Python 3.11/3.12.
+# Also set LLM_API_KEY (and LLM_PROVIDER / LLM_MODEL if not OpenAI) in .env for graph building.
+-r requirements.txt
+cognee

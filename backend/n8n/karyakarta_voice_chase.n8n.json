@@ -1,0 +1,578 @@
+{
+  "id": "kkVoiceChase0001",
+  "name": "Karyakarta - Voice chase",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "karyakarta-voice-chase",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "991f2849-6046-51c3-bdae-c2fc2526ce85",
+      "name": "Voice chase requested",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "karyakarta-voice-chase"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c87a6a43-1d46-5df1-ab60-b5140b300fdb",
+              "name": "backend_url",
+              "value": "http://host.docker.internal:8765",
+              "type": "string"
+            },
+            {
+              "id": "2e470074-959c-505c-a19e-bc63ed9c0a98",
+              "name": "case_id",
+              "value": "={{ $json.body.case_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3acbc1e4-eeb3-58b5-a9b3-913b1c378daa",
+      "name": "Settings (start)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings (start)').first().json.backend_url }}/api/cases/{{ $('Settings (start)').first().json.case_id }}/voice-chase/context",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "737f3059-5f43-5dbf-853e-9a4f566e00a0",
+      "name": "Get agent context",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3630d152-b4ff-56f7-b671-70e659fc95c4",
+              "leftValue": "={{ $json.data.should_call }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "38731e0e-c26f-5c90-b321-a922987fab32",
+      "name": "Anything to chase?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1ea2560e-6e0c-5df3-a4d9-45d8d628857f",
+              "name": "outcome",
+              "value": "not_configured",
+              "type": "string"
+            },
+            {
+              "id": "5d8cfd6f-95c7-5902-a367-489ad8af1d0c",
+              "name": "summary",
+              "value": "=Agent context ready ({{ $json.data.agent_variables.issue_count }} item(s): {{ $json.data.agent_variables.documents_needed_en }}). Phone calling is not configured yet.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d7759259-2278-50d8-aff1-d1a2b94517a9",
+      "name": "Place call (Sarvam phone: set up later)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings (start)').first().json.backend_url }}/api/cases/{{ $('Settings (start)').first().json.case_id }}/voice-chase/result",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ outcome: $json.outcome, summary: $json.summary }) }}"
+      },
+      "id": "7d4d9aa8-4908-5cd5-89a7-e3ac8410c67b",
+      "name": "Report call not placed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1140,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings (start)').first().json.backend_url }}/api/cases/{{ $('Settings (start)').first().json.case_id }}/voice-chase/result",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ outcome: 'not_configured', summary: 'No merchant-fixable items on this case, so no call was needed.' }) }}"
+      },
+      "id": "e545fd11-667c-5e9c-a881-c62355fb1f3b",
+      "name": "Report nothing to chase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "karyakarta-voice-result",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "ca71f2ea-580b-58a7-9976-9066402b2c47",
+      "name": "Call completed",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        560
+      ],
+      "webhookId": "karyakarta-voice-result"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5e4d9f99-4e23-57b3-a5e3-e5ab29650f4d",
+              "name": "backend_url",
+              "value": "http://host.docker.internal:8765",
+              "type": "string"
+            },
+            {
+              "id": "d6fddf1a-b474-53f3-ad49-293000b6c8fa",
+              "name": "case_id",
+              "value": "={{ $json.body.case_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "89bcc68f-b82e-5dd6-a501-1f482460e46f",
+      "name": "Settings (result)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings (result)').first().json.backend_url }}/api/cases/{{ $('Settings (result)').first().json.case_id }}/voice-chase/result",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ outcome: $('Call completed').first().json.body.outcome, summary: $('Call completed').first().json.body.summary || null, transcript: $('Call completed').first().json.body.transcript || null, call_id: $('Call completed').first().json.body.call_id || null }) }}"
+      },
+      "id": "1ffa3818-ae52-5795-8650-138bedfc3825",
+      "name": "Record call on case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ecc61925-94e1-522d-8c94-57956507b930",
+              "leftValue": "={{ $json.data.worth_remembering }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "dfe28745-8ce0-577d-bcec-49384908a229",
+      "name": "Worth remembering?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings (result)').first().json.backend_url }}/api/voice-calls/{{ $('Record call on case').first().json.data.voice_call_id }}/memory-summary",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "9fbd6ec5-0eac-525d-a595-0788991fb014",
+      "name": "Get call memory summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        480
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "memory",
+        "operation": "remember",
+        "rememberInputType": "text",
+        "rememberText": [
+          "={{ $json.data.text }}"
+        ],
+        "rememberDatasetName": "={{ $json.data.dataset }}",
+        "rememberAdditionalFields": {
+          "fileNamePrefix": "={{ $json.data.file_prefix }}",
+          "runInBackground": true
+        }
+      },
+      "id": "c72dadd5-0ad1-53c8-90da-a8584690c916",
+      "name": "Cognee: store call",
+      "type": "n8n-nodes-cognee.cognee",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        480
+      ],
+      "credentials": {
+        "cogneeApi": {
+          "id": "kkCogneeCloud01",
+          "name": "Cognee Cloud (Karyakarta)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings (result)').first().json.backend_url }}/api/voice-calls/{{ $('Record call on case').first().json.data.voice_call_id }}/memory/result",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.error ? { status: 'failed', error: String($json.error.message || $json.error).slice(0, 900) } : { status: 'stored' }) }}"
+      },
+      "id": "bd492683-235b-546d-a820-3303da559d72",
+      "name": "Report call memory result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        480
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings (result)').first().json.backend_url }}/api/cases/{{ $('Settings (result)').first().json.case_id }}/memory/graph-start",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "c66264dd-6ef8-5ff1-a0c6-77f7a7b5b5c7",
+      "name": "Mark graph building",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1620,
+        480
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "cognify",
+        "operation": "cognify",
+        "datasets": [
+          "={{ $('Get call memory summary').first().json.data.dataset }}"
+        ],
+        "runInBackground": false,
+        "cognifyAdditionalOptions": {}
+      },
+      "id": "5be2dc3b-91ae-56d3-8e81-39ed72b073ac",
+      "name": "Cognee: refresh knowledge graph",
+      "type": "n8n-nodes-cognee.cognee",
+      "typeVersion": 1,
+      "position": [
+        1860,
+        480
+      ],
+      "credentials": {
+        "cogneeApi": {
+          "id": "kkCogneeCloud01",
+          "name": "Cognee Cloud (Karyakarta)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings (result)').first().json.backend_url }}/api/cases/{{ $('Settings (result)').first().json.case_id }}/memory/graph-result",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(($json.error || JSON.stringify($json).includes('Errored')) ? { status: 'failed', detail: String(($json.error && ($json.error.message || $json.error)) || 'cognify pipeline errored').slice(0, 900) } : { status: 'completed', detail: 'cognify completed' }) }}"
+      },
+      "id": "c64b24b4-33e1-5760-94a8-81b3c9f3e18a",
+      "name": "Report graph result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2100,
+        480
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Voice chase requested": {
+      "main": [
+        [
+          {
+            "node": "Settings (start)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings (start)": {
+      "main": [
+        [
+          {
+            "node": "Get agent context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get agent context": {
+      "main": [
+        [
+          {
+            "node": "Anything to chase?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything to chase?": {
+      "main": [
+        [
+          {
+            "node": "Place call (Sarvam phone: set up later)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Report nothing to chase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Place call (Sarvam phone: set up later)": {
+      "main": [
+        [
+          {
+            "node": "Report call not placed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call completed": {
+      "main": [
+        [
+          {
+            "node": "Settings (result)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings (result)": {
+      "main": [
+        [
+          {
+            "node": "Record call on case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record call on case": {
+      "main": [
+        [
+          {
+            "node": "Worth remembering?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worth remembering?": {
+      "main": [
+        [
+          {
+            "node": "Get call memory summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Get call memory summary": {
+      "main": [
+        [
+          {
+            "node": "Cognee: store call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cognee: store call": {
+      "main": [
+        [
+          {
+            "node": "Report call memory result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report call memory result": {
+      "main": [
+        [
+          {
+            "node": "Mark graph building",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark graph building": {
+      "main": [
+        [
+          {
+            "node": "Cognee: refresh knowledge graph",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cognee: refresh knowledge graph": {
+      "main": [
+        [
+          {
+            "node": "Report graph result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {},
+  "active": false
+}

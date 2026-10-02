@@ -30,6 +30,8 @@ export interface TimelineEvent {
   tone: 'neutral' | 'ai' | 'warning' | 'success';
 }
 
+export interface LiveStage { id: number; label: string; status: 'done' | 'current' | 'upcoming'; }
+
 export interface MerchantCase {
   id: string;
   merchantName: string;
@@ -44,4 +46,16 @@ export interface MerchantCase {
   findings: CaseFinding[];
   timeline: TimelineEvent[];
   lastUpdated: string;
+  // live backend fields (absent on the offline sample)
+  entityType?: string;
+  accountStatus?: string;
+  stage?: number;
+  stages?: LiveStage[];
+  route?: 'AUTO' | 'ASK' | 'ESCALATE' | null;
+  summary?: string | null;
+  graphStatus?: 'none' | 'building' | 'ready' | 'failed';
+  checks?: import('@/services/api').CaseCheck[];
+  uploaded?: import('@/services/api').ChecklistEntry[];
+  missing?: import('@/services/api').ChecklistEntry[];
+  voiceCalls?: import('@/services/api').VoiceCallRecord[];
 }

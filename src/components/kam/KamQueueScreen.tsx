@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
 import { KamWorkspaceShell, type KamSidebarTab, type Persona } from '@/components/kam/KamWorkspaceShell';
 import { KamDashboardView } from '@/components/kam/KamDashboardView';
-import type { MerchantCase } from '@/types/case';
 
 interface KamQueueScreenProps {
-  caseData: MerchantCase;
-  onOpenCase: (caseId?: string) => void;
+  onOpenCase: (caseId: string) => void;
   onSwitchRole: () => void;
-  onVoiceChase: () => void;
 }
 
-export function KamQueueScreen({ caseData, onOpenCase, onSwitchRole, onVoiceChase }: KamQueueScreenProps) {
+export function KamQueueScreen({ onOpenCase, onSwitchRole }: KamQueueScreenProps) {
   const [activeTab, setActiveTab] = useState<KamSidebarTab>('dashboard');
   const [persona, setPersona] = useState<Persona>('KAM');
 
@@ -27,7 +24,7 @@ export function KamQueueScreen({ caseData, onOpenCase, onSwitchRole, onVoiceChas
       onSwitchPersona={setPersona}
       onSwitchToMerchant={onSwitchRole}
     >
-      <KamDashboardView caseData={caseData} onOpenCase={onOpenCase} />
+      <KamDashboardView onOpenCase={onOpenCase} />
     </KamWorkspaceShell>
   );
 }

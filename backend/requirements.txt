@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+httpx
+sqlmodel
+sarvamai>=0.1.35
+pillow
+reportlab
+pytest

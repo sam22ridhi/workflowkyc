@@ -6,12 +6,21 @@ import {
   FileSignature, ReceiptText, UserCheck, ScrollText, ChevronDown, ChevronUp, FileCode
 } from 'lucide-react';
 import type { MerchantCase } from '@/types/case';
+import type { UploadReport } from '@/services/api';
+
+interface UploadStatus {
+  name: string;
+  state: 'uploading' | 'done' | 'rejected' | 'error';
+  sha?: string;
+  label?: string;
+  note?: string;
+}
 
 type MerchantView = 'stage1' | 'account' | 'upload' | 'action';
 
 interface MerchantUploadScreenProps { 
   caseData: MerchantCase; 
-  onUpload: (documentId: string) => void; 
+  onUploadFiles: (files: File[], slot: string | null) => Promise<UploadReport>;
   onOpenKAM: () => void; 
   view?: MerchantView; 
   onNavigate?: (view: MerchantView) => void; 
@@ -19,7 +28,7 @@ interface MerchantUploadScreenProps {
 
 export interface DocumentRequirement {
   id: string;
-  category: 'business' | 'bank' | 'tax' | 'signatory';
+  category: 'business' | 'bank' | 'tax' | 'signatory' | 'governance';
   categoryLabel: string;
   title: string;
   acceptedDocuments: string[];
@@ -102,10 +111,28 @@ const documentChecklist: DocumentRequirement[] = [
     ],
     sampleFormats: 'PDF, JPG or PNG · Max 10 MB',
     required: true
+  },
+  {
+    id: 'corporate_docs',
+    category: 'governance',
+    categoryLabel: '5. Company & Governance Documents',
+    title: 'Incorporation, Board Resolution & Shareholding',
+    acceptedDocuments: [
+      'Certificate of Incorporation (with CIN)',
+      'Board Resolution authorising the signatory, certified by a director',
+      'Shareholding / beneficial-owner declaration (list the partners of any company or LLP shareholder)',
+      'FSSAI licence (food businesses)'
+    ],
+    mandatoryRules: [
+      'The board resolution must name an authorised signatory who is a current director, or carry valid delegation',
+      'Every owner above 10% (directly or through another entity) needs identity proof'
+    ],
+    sampleFormats: 'PDF, JPG or PNG · Max 25 MB',
+    required: true
   }
 ];
 
-export function MerchantUploadScreen({ onUpload, onOpenKAM, view = 'upload', onNavigate }: MerchantUploadScreenProps) {
+export function MerchantUploadScreen({ caseData, onUploadFiles, onOpenKAM, view = 'upload', onNavigate }: MerchantUploadScreenProps) {
   const [uploadedMap, setUploadedMap] = useState<Record<string, string[]>>({});
   const [allFiles, setAllFiles] = useState<string[]>([]);
   const [playing, setPlaying] = useState(false);
@@ -113,32 +140,40 @@ export function MerchantUploadScreen({ onUpload, onOpenKAM, view = 'upload', onN
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
   const fileRef = useRef<HTMLInputElement>(null);
   const [activeUploadTarget, setActiveUploadTarget] = useState<string | null>(null);
+  const [uploads, setUploads] = useState<UploadStatus[]>([]);
 
-  const receiveFiles = (event: ChangeEvent<HTMLInputElement>) => { 
-    const selected = Array.from(event.target.files ?? []); 
+  // Real upload: store + hash + start the pipeline on the backend. The UI keeps its optimistic per-slot list
+  // and drops any file the backend rejected (wrong type, too large, empty).
+  const ingest = (selected: File[], target: string | null) => {
     if (selected.length === 0) return;
+    const slot = target ?? (documentChecklist.find((r) => !uploadedMap[r.id] || uploadedMap[r.id].length === 0) || documentChecklist[0]).id;
+    const names = selected.map((file) => file.name);
+    setAllFiles((current) => [...current, ...names]);
+    setUploadedMap((prev) => ({ ...prev, [slot]: [...(prev[slot] || []), ...names] }));
+    setUploads((prev) => [...names.map((name) => ({ name, state: 'uploading' as const })), ...prev]);
 
-    const fileNames = selected.map((file) => file.name);
-    setAllFiles((current) => [...current, ...fileNames]);
+    const settle = (name: string, patch: Partial<UploadStatus>) =>
+      setUploads((prev) => prev.map((u) => (u.name === name && u.state === 'uploading' ? { ...u, ...patch } : u)));
+    const forget = (name: string) => {
+      setAllFiles((prev) => { const i = prev.indexOf(name); return i < 0 ? prev : prev.filter((_, j) => j !== i); });
+      setUploadedMap((prev) => ({ ...prev, [slot]: (prev[slot] || []).filter((f) => f !== name) }));
+    };
 
-    if (activeUploadTarget) {
-      setUploadedMap((prev) => ({
-        ...prev,
-        [activeUploadTarget]: [...(prev[activeUploadTarget] || []), ...fileNames]
-      }));
-    } else {
-      // Auto-assign to first incomplete requirement
-      const targetReq = documentChecklist.find((r) => !uploadedMap[r.id] || uploadedMap[r.id].length === 0) || documentChecklist[0];
-      setUploadedMap((prev) => ({
-        ...prev,
-        [targetReq.id]: [...(prev[targetReq.id] || []), ...fileNames]
-      }));
-    }
+    onUploadFiles(selected, slot).then(
+      (report) => {
+        report.documents.forEach((d) => settle(d.filename, { state: 'done', sha: d.sha256, label: d.doc_type_label }));
+        report.rejected.forEach((r) => { settle(r.filename, { state: 'rejected', note: r.reason }); forget(r.filename); });
+      },
+      (err) => names.forEach((name) => { settle(name, { state: 'error', note: err instanceof Error ? err.message : String(err) }); forget(name); }),
+    );
+  };
 
-    event.target.value = ''; 
+  const receiveFiles = (event: ChangeEvent<HTMLInputElement>) => {
+    ingest(Array.from(event.target.files ?? []), activeUploadTarget);
+    event.target.value = '';
     setActiveUploadTarget(null);
   };
-  
+
   const go = (next: MerchantView) => {
     onNavigate?.(next);
   };
@@ -179,10 +214,10 @@ export function MerchantUploadScreen({ onUpload, onOpenKAM, view = 'upload', onN
           className="flex items-center gap-3 hover:bg-[#e6f7fc]/50 px-3 py-1.5 rounded-xl transition-all border border-transparent hover:border-[#cfe9fc]"
         >
           <div className="w-8 h-8 rounded-full bg-[#002970] text-[#00BAF2] font-black text-xs flex items-center justify-center ring-2 ring-[#00BAF2]/20">
-            SF
+            {caseData.merchantName.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
           </div>
           <div className="text-left hidden sm:block">
-            <strong className="block text-xs font-bold text-slate-900">Sharma Foods Pvt. Ltd.</strong>
+            <strong className="block text-xs font-bold text-slate-900">{caseData.merchantName}</strong>
             <small className="block text-[10px] text-slate-500 font-medium mt-0.5">Authorized Signatory</small>
           </div>
           <ChevronRight size={16} className="text-slate-400" />
@@ -265,7 +300,9 @@ export function MerchantUploadScreen({ onUpload, onOpenKAM, view = 'upload', onN
                 setActiveUploadTarget(id);
                 fileRef.current?.click();
               }}
-              onFiles={receiveFiles} 
+              onFiles={receiveFiles}
+              onDropFiles={(files) => ingest(files, null)}
+              uploads={uploads}
               onRemove={(reqId, file) => {
                 setUploadedMap((prev) => ({
                   ...prev,
@@ -280,9 +317,10 @@ export function MerchantUploadScreen({ onUpload, onOpenKAM, view = 'upload', onN
             />
           )}
           {view === 'action' && (
-            <ActionRequired 
-              onNavigate={go} 
-              onUpload={(id) => { onUpload(id); go('upload'); }} 
+            <ActionRequired
+              onNavigate={go}
+              caseData={caseData}
+              onPickFiles={(files) => { ingest(files, 'business_proof'); go('upload'); }}  
               playing={playing} 
               onPlay={() => setPlaying(!playing)} 
             />
@@ -728,6 +766,8 @@ interface UploadPortalProps {
   allFiles: string[];
   onSelectCategory: (id: string) => void;
   onFiles: (event: ChangeEvent<HTMLInputElement>) => void;
+  onDropFiles: (files: File[]) => void;
+  uploads: UploadStatus[];
   onRemove: (reqId: string, file: string) => void;
   onSubmit: () => void;
   fileRef: React.RefObject<HTMLInputElement>;
@@ -740,13 +780,15 @@ function UploadPortal({
   allFiles, 
   onSelectCategory, 
   onFiles, 
-  onRemove, 
+  onDropFiles,
+  uploads,
+  onRemove,  
   onSubmit, 
   fileRef, 
   onNavigate,
   onOpenDpdp 
 }: UploadPortalProps) {
-  const [filter, setFilter] = useState<'all' | 'business' | 'bank' | 'tax' | 'signatory'>('all');
+  const [filter, setFilter] = useState<'all' | 'business' | 'bank' | 'tax' | 'signatory' | 'governance'>('all');
   const [expandedReq, setExpandedReq] = useState<string | null>('business_proof');
 
   const filteredRequirements = filter === 'all' 
@@ -776,7 +818,7 @@ function UploadPortal({
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Upload KYC Documents</h1>
           <p className="text-sm text-slate-500 mt-1 max-w-xl">
-            Please submit the 4 required regulatory document proofs to activate unlimited corporate settlements.
+            Please submit the {documentChecklist.length} required regulatory document proofs to activate unlimited corporate settlements.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -828,6 +870,12 @@ function UploadPortal({
           >
             4. Signatory KYC
           </button>
+          <button
+            onClick={() => setFilter('governance')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${filter === 'governance' ? 'bg-[#002970] text-white shadow-xs' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
+          >
+            5. Company &amp; Governance
+          </button>
         </div>
 
         <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
@@ -864,6 +912,7 @@ function UploadPortal({
                       {req.category === 'bank' && <Landmark size={20} />}
                       {req.category === 'tax' && <ReceiptText size={20} />}
                       {req.category === 'signatory' && <UserCheck size={20} />}
+                      {req.category === 'governance' && <FileSignature size={20} />}
                     </div>
 
                     <div>
@@ -968,6 +1017,7 @@ function UploadPortal({
             className="bg-white border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/20 transition-all rounded-2xl p-6 text-center cursor-pointer group flex flex-col items-center justify-center min-h-[260px] shadow-2xs"
             onClick={() => fileRef.current?.click()} 
             onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => { e.preventDefault(); onDropFiles(Array.from(e.dataTransfer.files)); }}
           >
             <input 
               ref={fileRef} 
@@ -986,9 +1036,28 @@ function UploadPortal({
               Drag and drop any of your documents here, or click to browse files.
             </p>
             <span className="text-[10px] font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-full">
-              PDF, JPG or PNG · Up to 10 MB
+              PDF, JPG or PNG · Up to 25 MB
             </span>
           </div>
+
+          {uploads.length > 0 && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-2xs space-y-2" aria-live="polite">
+              <strong className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Uploads</strong>
+              {uploads.slice(0, 12).map((u, i) => (
+                <div key={`${u.name}-${i}`} className="flex items-start gap-2 text-xs">
+                  <span className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${u.state === 'done' ? 'bg-emerald-100 text-emerald-700' : u.state === 'uploading' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                    {u.state === 'done' ? '✓' : u.state === 'uploading' ? '…' : '!'}
+                  </span>
+                  <div className="min-w-0">
+                    <span className="block font-semibold text-slate-800 truncate">{u.name}</span>
+                    {u.state === 'done' && <span className="block text-[10px] text-slate-500 font-mono truncate">SHA-256 {u.sha?.slice(0, 16)}… · read as {u.label}</span>}
+                    {u.state === 'uploading' && <span className="block text-[10px] text-slate-500">Securing and hashing…</span>}
+                    {(u.state === 'rejected' || u.state === 'error') && <span className="block text-[10px] text-red-700">{u.note}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* DPDP Act 2023 Statutory Card */}
           <div className="bg-gradient-to-br from-[#e6f7fc]/50 to-slate-50 border border-[#cfe9fc] rounded-2xl p-5 shadow-2xs">
@@ -1034,7 +1103,7 @@ function UploadPortal({
                 {allFiles.length === 0 ? 'No documents uploaded yet' : `${allFiles.length} files attached across ${completedCount} categories`}
               </strong>
               <small className="text-[11px] text-slate-500">
-                {isAllComplete ? 'All 4 statutory KYC categories fulfilled.' : 'Please provide at least 1 document for each category.'}
+                {isAllComplete ? `All ${documentChecklist.length} statutory KYC categories fulfilled.` : 'Please provide at least 1 document for each category.'}
               </small>
             </div>
           </div>
@@ -1063,7 +1132,11 @@ function UploadPortal({
 // ----------------------------------------------------------------------
 // 4. View: Action Required / Resolution Center
 // ----------------------------------------------------------------------
-function ActionRequired({ onNavigate, onUpload, playing, onPlay }: { onNavigate: (view: MerchantView) => void; onUpload: (id: string) => void; playing: boolean; onPlay: () => void }) { 
+function ActionRequired({ onNavigate, caseData, onPickFiles, playing, onPlay }: { onNavigate: (view: MerchantView) => void; caseData: MerchantCase; onPickFiles: (files: File[]) => void; playing: boolean; onPlay: () => void }) { 
+  const pickRef = useRef<HTMLInputElement>(null);
+  const issues = (caseData.checks ?? []).filter((c) => (c.status === 'fail' || c.status === 'warn') && c.action !== 'escalate');
+  const open = issues.length + (caseData.missing?.length ?? 0);
+  const first = issues[0];
   return (
     <main className="flex-1 max-w-3xl w-full mx-auto p-6 sm:p-10">
       <PortalTracker current={2} />
@@ -1091,7 +1164,7 @@ function ActionRequired({ onNavigate, onUpload, playing, onPlay }: { onNavigate:
            </div>
         </div>
         <div>
-          <strong className="block text-sm font-bold text-amber-900">⚠ Action Required: 1 Document Pending</strong>
+          <strong className="block text-sm font-bold text-amber-900">{open > 0 ? `⚠ Action Required: ${open} item${open === 1 ? '' : 's'} pending` : '✓ Nothing needs your action right now'}</strong>
           <p className="text-xs text-amber-700 mt-0.5 font-medium">Your application is almost complete.</p>
         </div>
       </div>
@@ -1107,9 +1180,9 @@ function ActionRequired({ onNavigate, onUpload, playing, onPlay }: { onNavigate:
             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md mb-3 border border-blue-100">
               <ShieldCheck size={12} /> AI Clarification
             </span>
-            <h2 className="text-xl font-extrabold text-slate-900 mb-2">Address Mismatch Detected</h2>
+            <h2 className="text-xl font-extrabold text-slate-900 mb-2">{first ? first.label : 'No corrections needed'}</h2>
             <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              Your GST Certificate lists <strong className="text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded font-bold">Navi Mumbai</strong>, but your application says <strong className="text-slate-900 bg-slate-100 px-1.5 py-0.5 rounded font-bold">Mumbai</strong>.
+              {first ? first.detail : 'Karyakarta has not found anything for you to fix yet. If you have just uploaded documents, give it a minute.'}
             </p>
           </div>
         </div>
@@ -1142,8 +1215,16 @@ function ActionRequired({ onNavigate, onUpload, playing, onPlay }: { onNavigate:
         <div className="p-6 sm:p-8">
           <div 
             className="group cursor-pointer bg-[#e6f7fc]/40 border-2 border-dashed border-[#cfe9fc] hover:border-[#00BAF2] hover:bg-[#e6f7fc]/70 rounded-xl p-6 transition-all flex items-center justify-between gap-4"
-            onClick={() => onUpload('address')}
+            onClick={() => pickRef.current?.click()}
           >
+            <input
+              ref={pickRef}
+              className="hidden"
+              type="file"
+              multiple
+              accept=".pdf,.png,.jpg,.jpeg"
+              onChange={(e) => { onPickFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }}
+            />
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white rounded-lg border border-[#cfe9fc] text-[#002970] flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:text-[#00BAF2] transition-all shrink-0">
                 <UploadCloud size={24} strokeWidth={1.5} />

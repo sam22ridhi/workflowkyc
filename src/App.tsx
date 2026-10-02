@@ -15,88 +15,116 @@ import { KamQueueScreen } from '@/components/kam/KamQueueScreen';
 import { MerchantAuthScreen } from '@/components/merchant/MerchantAuthScreen';
 import { MerchantUploadScreen } from '@/components/merchant/MerchantUploadScreen';
 import { Brand } from '@/components/shared/Brand';
-import { cloneSeedCase } from '@/data/mockCase';
-import type { MerchantCase, TimelineEvent } from '@/types/case';
+import { DEMO_MERCHANT_CASE, sendCaseAction, uploadDocuments } from '@/services/api';
+import { useLiveCase } from '@/services/useLiveCase';
 
 type Route = 'landing' | 'login' | 'merchant-stage1' | 'merchant-account' | 'merchant-upload' | 'merchant-action' | 'kam' | 'case';
 type MerchantView = 'stage1' | 'account' | 'upload' | 'action';
-type CaseAction = 'request' | 'voice' | 'approve';
+type CaseAction = 'request' | 'voice' | 'approve' | 'send_back' | 'compliance_approve';
 
 function App() {
   const [route, setRoute] = useState<Route>(() => routeFromPath(window.location.pathname));
-  const [caseData, setCaseData] = useState<MerchantCase>(() => cloneSeedCase());
+  const [kamCaseId, setKamCaseId] = useState<string>(() => caseIdFromPath(window.location.pathname) ?? DEMO_MERCHANT_CASE);
+  // The signed-in merchant is the Sharma Foods demo case; the KAM can open any case from the queue.
+  const merchant = useLiveCase(DEMO_MERCHANT_CASE);
+  const kam = useLiveCase(kamCaseId);
 
   useEffect(() => {
-    const handler = () => setRoute(routeFromPath(window.location.pathname));
+    const handler = () => {
+      setRoute(routeFromPath(window.location.pathname));
+      const id = caseIdFromPath(window.location.pathname);
+      if (id) setKamCaseId(id);
+    };
     window.addEventListener('popstate', handler);
     return () => window.removeEventListener('popstate', handler);
   }, []);
 
-  const navigate = (next: Route) => {
-    const paths: Record<Route, string> = { 
-      landing: '/', 
-      login: '/login', 
-      'merchant-stage1': '/dashboard/stage-1', 
+  const navigate = (next: Route, caseId?: string) => {
+    const id = caseId ?? kamCaseId;
+    const paths: Record<Route, string> = {
+      landing: '/',
+      login: '/login',
+      'merchant-stage1': '/dashboard/stage-1',
       'merchant-account': '/dashboard/account-center',
-      'merchant-upload': '/dashboard/upload', 
-      'merchant-action': '/dashboard/action-required', 
-      kam: '/kam', 
-      case: `/kam/cases/${caseData.id}` 
+      'merchant-upload': '/dashboard/upload',
+      'merchant-action': '/dashboard/action-required',
+      kam: '/kam',
+      case: `/kam/cases/${id}`,
     };
+    if (caseId) setKamCaseId(caseId);
     window.history.pushState({}, '', paths[next]);
     setRoute(next);
   };
 
-  const appendEvent = (current: MerchantCase, event: Omit<TimelineEvent, 'id' | 'timestamp'>): MerchantCase => ({
-    ...current,
-    lastUpdated: 'just now',
-    timeline: [...current.timeline, { ...event, id: `${event.title}-${Date.now()}`, timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) }],
-  });
-
-  const handleUpload = (documentId: string) => {
-    setCaseData((current) => {
-      const documents = current.documents.map((document) => document.id === documentId ? { ...document, status: 'received' as const, fieldsExtracted: documentId === 'address' ? 4 : 3, sourceLabel: `${document.name.replace(/ /g, '_')}.pdf · Page 1` } : document);
-      const addressCorrected = documentId === 'address';
-      const withUpload = appendEvent({ ...current, documents, completion: addressCorrected ? 100 : Math.min(88, current.completion + 10), status: addressCorrected ? 'ready_for_review' : current.status }, { title: 'Merchant re-uploaded', detail: `${current.documents.find((document) => document.id === documentId)?.name ?? 'Document'} was added to the case.`, tone: 'neutral' });
-      if (!addressCorrected) return withUpload;
-      return appendEvent({ ...withUpload, findings: withUpload.findings.map((finding) => ({ ...finding, status: 'verified' as const })), status: 'ready_for_review' }, { title: 'AI re-verified', detail: 'Corrected address proof now matches the submitted application.', tone: 'success' });
-    });
+  // Merchant uploads real files; the backend stores, hashes and starts the pipeline (202).
+  const handleUploadFiles = async (files: File[], slot: string | null) => {
+    const report = await uploadDocuments(DEMO_MERCHANT_CASE, files, slot);
+    void merchant.reload();
+    return report;
   };
 
-  const handleCaseAction = (action: CaseAction) => {
-    setCaseData((current) => {
-      if (action === 'approve') return appendEvent({ ...current, status: 'ready_for_review' }, { title: 'KAM approved application', detail: 'All AI findings are verified and the case is ready to move forward.', tone: 'success' });
-      if (action === 'voice') return appendEvent({ ...current, status: 'awaiting_merchant' }, { title: 'KAM chased via Voice', detail: 'Voice agent requested corrected address proof from the merchant.', tone: 'ai' });
-      return appendEvent({ ...current, status: 'awaiting_merchant' }, { title: 'Information requested', detail: 'KAM requested corrected address proof from the merchant.', tone: 'neutral' });
-    });
+  const handleCaseAction = async (action: CaseAction, channel?: string) => {
+    await sendCaseAction(kamCaseId, action, { channel, actor: action === 'send_back' || action === 'compliance_approve' ? 'compliance' : 'kam' });
+    void kam.reload();
   };
+
+  const offline = merchant.offline || kam.offline;
+  const banner = offline ? (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] bg-amber-100 text-amber-900 border border-amber-300 rounded-xl px-4 py-2 text-xs font-bold shadow-lg">
+      Backend not reachable. Showing sample data. Start it with backend/run.bat (http://localhost:8765).
+    </div>
+  ) : null;
+  const loading = <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">Loading case…</div>;
 
   if (route === 'login') return <MerchantAuthScreen onBack={() => navigate('landing')} onSuccess={() => navigate('merchant-stage1')} />;
   if (route === 'merchant-stage1' || route === 'merchant-account' || route === 'merchant-upload' || route === 'merchant-action') {
-    const currentMerchantView: MerchantView = 
-      route === 'merchant-stage1' ? 'stage1' : 
-      route === 'merchant-account' ? 'account' : 
+    const currentMerchantView: MerchantView =
+      route === 'merchant-stage1' ? 'stage1' :
+      route === 'merchant-account' ? 'account' :
       route === 'merchant-upload' ? 'upload' : 'action';
-
+    if (!merchant.caseData) return loading;
     return (
-      <MerchantUploadScreen 
-        view={currentMerchantView} 
-        caseData={caseData} 
-        onUpload={handleUpload} 
-        onOpenKAM={() => navigate('kam')} 
-        onNavigate={(view: MerchantView) => {
-          const targetRoute: Route = 
-            view === 'stage1' ? 'merchant-stage1' : 
-            view === 'account' ? 'merchant-account' : 
-            view === 'upload' ? 'merchant-upload' : 'merchant-action';
-          navigate(targetRoute);
-        }} 
-      />
+      <>
+        <MerchantUploadScreen
+          view={currentMerchantView}
+          caseData={merchant.caseData}
+          onUploadFiles={handleUploadFiles}
+          onOpenKAM={() => navigate('kam')}
+          onNavigate={(view: MerchantView) => {
+            const targetRoute: Route =
+              view === 'stage1' ? 'merchant-stage1' :
+              view === 'account' ? 'merchant-account' :
+              view === 'upload' ? 'merchant-upload' : 'merchant-action';
+            navigate(targetRoute);
+          }}
+        />
+        {banner}
+      </>
     );
   }
-  if (route === 'kam') return <KamQueueScreen caseData={caseData} onOpenCase={() => navigate('case')} onSwitchRole={() => navigate('merchant-stage1')} onVoiceChase={() => navigate('case')} />;
-  if (route === 'case') return <CaseDetailScreen caseData={caseData} onBack={() => navigate('kam')} onSwitchRole={() => navigate('merchant-stage1')} onAction={handleCaseAction} />;
+  if (route === 'kam') {
+    return (
+      <>
+        <KamQueueScreen onOpenCase={(id) => navigate('case', id)} onSwitchRole={() => navigate('merchant-stage1')} />
+        {banner}
+      </>
+    );
+  }
+  if (route === 'case') {
+    if (!kam.caseData) return loading;
+    return (
+      <>
+        <CaseDetailScreen caseData={kam.caseData} onBack={() => navigate('kam')} onSwitchRole={() => navigate('merchant-stage1')} onAction={handleCaseAction} />
+        {banner}
+      </>
+    );
+  }
   return <Landing onAuth={() => navigate('login')} onMerchant={() => navigate('login')} onKAM={() => navigate('kam')} />;
+}
+
+function caseIdFromPath(path: string): string | null {
+  const m = path.match(/^\/kam\/cases\/([^/]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
 }
 
 function routeFromPath(path: string): Route {

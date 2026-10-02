@@ -1,44 +1,63 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Sparkles,
-  ExternalLink,
   ShieldCheck,
   CheckCircle2,
-  AlertCircle,
-  FileCheck,
   Edit3,
   Send,
   Lock,
   Building,
   CreditCard,
-  Users
+  Users,
+  Loader2,
+  FileSearch,
 } from 'lucide-react';
-import type { MerchantCase } from '@/types/case';
+import { postJson, type CrmField, type CrmForm } from '@/services/api';
 
 interface AutoFilledCrmFormProps {
-  caseData: MerchantCase;
+  caseId: string;
+  form: CrmForm | null;
+  error?: string | null;
+  reload: () => void | Promise<void>;
   onSubmitToCompliance: () => void;
   onEditOverride: () => void;
+  onViewEvidence?: (docId: string, field: string) => void;
   isCompliancePersona?: boolean;
 }
 
+const SECTION_ICON: Record<string, { icon: typeof Building; tone: string }> = {
+  business: { icon: Building, tone: 'bg-indigo-50 text-indigo-700' },
+  tax_bank: { icon: CreditCard, tone: 'bg-emerald-50 text-emerald-700' },
+  stakeholders: { icon: Users, tone: 'bg-purple-50 text-purple-700' },
+};
+
 export function AutoFilledCrmForm({
-  caseData,
-  onSubmitToCompliance,
-  onEditOverride,
-  isCompliancePersona = false,
+  caseId, form, error, reload, onSubmitToCompliance, onEditOverride, onViewEvidence, isCompliancePersona = false,
 }: AutoFilledCrmFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const [overrideMode, setOverrideMode] = useState(false);
+  const [saving, setSaving] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const handleSubmit = () => {
-    setSubmitted(true);
-    onSubmitToCompliance();
+  const summary = form?.summary;
+  const allFilled = summary ? summary.fields_filled === summary.fields_total : false;
+
+  const saveOverride = async (field: CrmField, value: string) => {
+    if (!value.trim() || value === field.value) return;
+    setSaving(field.key);
+    setSaveError(null);
+    try {
+      await postJson(`/api/cases/${caseId}/crm-form/override`, { key: field.key, value, note: 'Edited in CRM form' });
+      await reload();
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(null);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Prominent Purple AI Banner */}
       <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-[#002970] text-white p-5 md:p-6 rounded-2xl shadow-sm border border-purple-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start gap-4">
           <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/40 text-purple-300 flex items-center justify-center shrink-0">
@@ -46,243 +65,87 @@ export function AutoFilledCrmForm({
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-purple-200 bg-purple-800/60 px-2.5 py-0.5 rounded-full border border-purple-400/30">
-                Zero Manual Data Entry
-              </span>
-              <span className="text-xs text-purple-200/80 font-medium">
-                Verified against 3 Sovereign Registries
-              </span>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-purple-200 bg-purple-800/60 px-2.5 py-0.5 rounded-full border border-purple-400/30">Zero Manual Data Entry</span>
+              {summary?.avg_confidence != null && <span className="text-xs text-purple-200/80 font-medium">Avg. extraction confidence {summary.avg_confidence}%</span>}
             </div>
             <h2 className="text-base md:text-lg font-extrabold text-white tracking-tight">
-              ✨ Form 100% Auto-Populated by Karyakarta Agent from 11 source documents.
+              {summary
+                ? `✨ Form ${summary.fill_percent}% auto-populated by Karyakarta Agent from ${summary.source_documents} source document${summary.source_documents === 1 ? '' : 's'}.`
+                : '✨ Karyakarta Agent is preparing the form…'}
             </h2>
             <p className="text-xs text-purple-100/80 mt-0.5 leading-relaxed font-medium">
-              Every entity has been extracted from legal proofs, cross-referenced against MCA &amp; GSTN records, and cited with provenance lines.
+              Every value is extracted from the uploaded documents and cited to its source. Where two sources disagree, the field is flagged for you.
             </p>
           </div>
         </div>
-
-        {/* Status chip */}
-        <div className="shrink-0 flex items-center gap-2 bg-white/10 backdrop-blur-xs px-3.5 py-2 rounded-xl border border-white/20">
-          <ShieldCheck size={16} className="text-emerald-400" />
-          <span className="text-xs font-bold text-white">Compliance Ready</span>
+        <div className="shrink-0 flex items-center gap-2 bg-white/10 px-3.5 py-2 rounded-xl border border-white/20">
+          <ShieldCheck size={16} className={summary && summary.conflicts === 0 && allFilled ? 'text-emerald-400' : 'text-amber-300'} />
+          <span className="text-xs font-bold text-white">
+            {!summary ? 'Loading' : summary.conflicts > 0 ? `${summary.conflicts} conflict${summary.conflicts === 1 ? '' : 's'} to review` : allFilled ? 'Compliance Ready' : `${summary.fields_total - summary.fields_filled} field(s) missing`}
+          </span>
         </div>
       </div>
 
-      {/* Main CRM Form Card */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
-        {/* Form Title & Context */}
         <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#00BAF2] block mb-0.5">
-              Corporate Onboarding Master Form
-            </span>
-            <h3 className="text-lg font-extrabold text-[#002970]">
-              Paytm Business Enterprise Merchant Application
-            </h3>
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#00BAF2] block mb-0.5">Corporate Onboarding Master Form</span>
+            <h3 className="text-lg font-extrabold text-[#002970]">Paytm Business Enterprise Merchant Application</h3>
           </div>
           <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
             <Lock size={13} className="text-slate-400" />
-            <span>Maker Mode · Read Only</span>
+            <span>{overrideMode ? 'Maker Mode · Editing (overrides are audited)' : 'Maker Mode · Read Only'}</span>
           </div>
         </div>
 
         <form onSubmit={(e) => e.preventDefault()} className="p-6 md:p-8 space-y-8">
-          {/* Section 1: Business Details */}
-          <div>
-            <div className="flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
-              <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center">
-                <Building size={16} />
+          {!form && !error && <div className="text-xs text-slate-500 flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Loading form…</div>}
+          {error && <div className="text-xs text-rose-600 font-semibold">Could not load the CRM form: {error}</div>}
+          {form?.sections.map((section) => {
+            const { icon: Icon, tone } = SECTION_ICON[section.id] ?? SECTION_ICON.business;
+            return (
+              <div key={section.id}>
+                <div className="flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${tone}`}><Icon size={16} /></div>
+                  <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">{section.title}</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {section.fields.map((f) => (
+                    <AiField key={`${f.key}:${f.value}`} field={f} editable={overrideMode} saving={saving === f.key} onCommit={(v) => saveOverride(f, v)} onViewEvidence={onViewEvidence} />
+                  ))}
+                </div>
               </div>
-              <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">
-                1. Business &amp; Entity Details
-              </h4>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              <AiField
-                label="Legal Entity Name"
-                value="Sharma Foods Private Limited"
-                sourceLabel="Source: COI p.1"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Corporate Identity Number (CIN)"
-                value="U74999MH2021PTC123456"
-                sourceLabel="Source: MCA21 Registry"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Date of Incorporation"
-                value="14 August 2021"
-                sourceLabel="Source: COI p.1"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Registered Office Address"
-                value="12 MG Road, Fort, Mumbai - 400001, Maharashtra"
-                sourceLabel="Source: COI & MCA Registry"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Operating / Principal Address"
-                value="12 Mahatma Gandhi Marg, Navi Mumbai - 400703"
-                sourceLabel="Source: GST Cert p.1"
-                editable={overrideMode}
-                warningNote="Exception: Mismatch flagged vs submitted application"
-              />
-              <AiField
-                label="Company Classification"
-                value="Private Limited Company (Indian Non-Govt)"
-                sourceLabel="Source: MCA Master Data"
-                editable={overrideMode}
-              />
-            </div>
-          </div>
-
-          {/* Section 2: Tax & Banking */}
-          <div>
-            <div className="flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
-              <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center">
-                <CreditCard size={16} />
-              </div>
-              <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">
-                2. Tax &amp; Settlement Banking
-              </h4>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              <AiField
-                label="Permanent Account Number (PAN)"
-                value="AABCS4821Q"
-                sourceLabel="Source: Company PAN Card p.1"
-                editable={overrideMode}
-              />
-              <AiField
-                label="GSTIN Identifier"
-                value="27AABCS4821Q1Z7"
-                sourceLabel="Source: GST Cert p.1"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Settlement Bank Account Number"
-                value="50200034928174"
-                sourceLabel="Source: Bank Passbook p.1"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Bank IFSC Code"
-                value="HDFC0000128"
-                sourceLabel="Source: Pre-printed Cheque"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Beneficiary / Account Holder Name"
-                value="Sharma Foods Private Limited"
-                sourceLabel="Source: Attested Bank Letter"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Account Type"
-                value="Corporate Current Account"
-                sourceLabel="Source: Bank Statement p.1"
-                editable={overrideMode}
-              />
-            </div>
-          </div>
-
-          {/* Section 3: Stakeholders & Governance */}
-          <div>
-            <div className="flex items-center gap-2 pb-3 mb-4 border-b border-slate-100">
-              <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-700 flex items-center justify-center">
-                <Users size={16} />
-              </div>
-              <h4 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">
-                3. Stakeholders &amp; Beneficial Owners (KBO)
-              </h4>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <AiField
-                label="Managing Director / Signatory"
-                value="Rajesh Kumar Sharma"
-                sourceLabel="Source: Board Resolution p.2"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Director Identification Number (DIN)"
-                value="DIN-08492019"
-                sourceLabel="Source: MCA Registry"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Equity Shareholding Percentage"
-                value="68.50% (Majority Stakeholder)"
-                sourceLabel="Source: Annual Return (MGT-7)"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Joint Director"
-                value="Anjali Rajesh Sharma"
-                sourceLabel="Source: Board Resolution p.2"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Director Identification Number (DIN)"
-                value="DIN-08492020"
-                sourceLabel="Source: MCA Registry"
-                editable={overrideMode}
-              />
-              <AiField
-                label="Equity Shareholding Percentage"
-                value="31.50%"
-                sourceLabel="Source: Annual Return (MGT-7)"
-                editable={overrideMode}
-              />
-            </div>
-          </div>
+            );
+          })}
+          {saveError && <p className="text-xs text-rose-600 font-semibold">Could not save override: {saveError}</p>}
         </form>
 
-        {/* Bottom Action Bar */}
         <div className="p-5 md:p-6 bg-slate-50 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-xs text-slate-600 font-medium">
-            <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+            <CheckCircle2 size={16} className={allFilled ? 'text-emerald-600 shrink-0' : 'text-slate-400 shrink-0'} />
             <span>
-              All mandatory statutory fields populated with 98.4% aggregated AI confidence.
+              {summary
+                ? `${summary.fields_filled}/${summary.fields_total} fields populated${summary.avg_confidence != null ? ` with ${summary.avg_confidence}% average AI confidence` : ''}.${summary.missing_documents.length ? ` Still missing: ${summary.missing_documents.join(', ')}.` : ''}`
+                : 'Waiting for data…'}
             </span>
           </div>
-
           <div className="flex items-center gap-3">
-            {/* Override Button */}
             <button
               type="button"
-              onClick={() => {
-                setOverrideMode(!overrideMode);
-                onEditOverride();
-              }}
-              className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 ${
-                overrideMode
-                  ? 'bg-amber-100 text-amber-900 border-amber-300'
-                  : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'
-              }`}
+              onClick={() => { setOverrideMode(!overrideMode); onEditOverride(); }}
+              className={`px-4 py-2.5 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 ${overrideMode ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-300'}`}
             >
               <Edit3 size={14} className="text-slate-500" />
               <span>{overrideMode ? 'Lock AI Fields' : 'Edit Field (Override AI)'}</span>
             </button>
-
-            {/* Primary CTA: Submit to Compliance */}
             <button
               type="button"
-              onClick={handleSubmit}
-              disabled={submitted}
+              onClick={() => { setSubmitted(true); onSubmitToCompliance(); }}
+              disabled={submitted || isCompliancePersona}
               className="px-6 py-2.5 bg-[#002970] hover:bg-[#001b4c] active:bg-[#001438] text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
             >
               <Send size={14} className="text-[#00BAF2]" />
-              <span>
-                {submitted
-                  ? 'Submitted to Compliance Desk ✓'
-                  : 'Submit to Compliance (Checker) →'}
-              </span>
+              <span>{submitted ? 'Submitted to Compliance Desk ✓' : 'Submit to Compliance (Checker) →'}</span>
             </button>
           </div>
         </div>
@@ -292,57 +155,50 @@ export function AutoFilledCrmForm({
 }
 
 function AiField({
-  label,
-  value,
-  sourceLabel,
-  editable,
-  warningNote,
-}: {
-  label: string;
-  value: string;
-  sourceLabel: string;
-  editable: boolean;
-  warningNote?: string;
-}) {
+  field, editable, saving, onCommit, onViewEvidence,
+}: { field: CrmField; editable: boolean; saving: boolean; onCommit: (value: string) => void; onViewEvidence?: (docId: string, field: string) => void }) {
+  const [draft, setDraft] = useState(field.value ?? '');
+  const conflict = field.status === 'conflict';
+  const missing = field.status === 'missing';
+  const canJump = !!(field.doc_id && field.field && onViewEvidence);
+
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between gap-2">
-        <label className="text-[11px] font-bold text-slate-700 block truncate">
-          {label}
-        </label>
-        <span className="text-[9px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.2 rounded border border-purple-200 shrink-0 inline-flex items-center gap-1">
-          <Sparkles size={9} className="text-purple-600" />
-          {sourceLabel}
-        </span>
+        <label className="text-[11px] font-bold text-slate-700 block truncate">{field.label}</label>
+        <button
+          type="button"
+          disabled={!canJump}
+          onClick={() => canJump && onViewEvidence!(field.doc_id!, field.field!)}
+          title={canJump ? 'Open the source document with this field highlighted' : undefined}
+          className={`text-[9px] font-semibold px-1.5 rounded border shrink-0 inline-flex items-center gap-1 ${
+            missing ? 'text-slate-500 bg-slate-50 border-slate-200' : field.overridden ? 'text-amber-800 bg-amber-50 border-amber-300' : 'text-purple-700 bg-purple-50 border-purple-200 hover:bg-purple-100'
+          }`}
+        >
+          {canJump ? <FileSearch size={9} /> : <Sparkles size={9} className="text-purple-600" />}
+          {field.source}
+        </button>
       </div>
-
       <div className="relative">
         <input
           type="text"
-          defaultValue={value}
+          value={editable ? draft : field.value ?? ''}
+          placeholder={missing ? 'Awaiting document' : undefined}
           readOnly={!editable}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => editable && onCommit(draft)}
           className={`w-full px-3.5 py-2.5 text-xs font-medium rounded-xl transition-all outline-none ${
-            editable
-              ? 'bg-white border-2 border-amber-400 text-slate-900 shadow-2xs'
-              : warningNote
-              ? 'bg-amber-50/50 border border-amber-300 text-slate-900 font-semibold pl-8'
+            editable ? 'bg-white border-2 border-amber-400 text-slate-900 shadow-2xs'
+              : missing ? 'bg-slate-50 border border-dashed border-slate-300 text-slate-500 pl-8'
+              : conflict ? 'bg-amber-50/50 border border-amber-300 text-slate-900 font-semibold pl-8'
               : 'bg-purple-50/20 border border-purple-200/90 text-slate-900 font-semibold pl-8 focus:border-purple-400'
           }`}
         />
-
-        {/* Sparkle icon inside input indicating AI-filled */}
-        {!editable && (
-          <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-purple-500">
-            <Sparkles size={13} />
-          </div>
-        )}
+        {!editable && <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-purple-500"><Sparkles size={13} /></div>}
+        {saving && <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-400" />}
       </div>
-
-      {warningNote && (
-        <span className="text-[10px] text-amber-700 font-bold block mt-0.5">
-          ⚠️ {warningNote}
-        </span>
-      )}
+      {conflict && <span className="text-[10px] text-amber-700 font-bold block mt-0.5">⚠️ Conflict: {field.conflict_note}</span>}
+      {field.overridden && <span className="text-[10px] text-slate-500 block mt-0.5">AI read “{field.ai_value}”; overridden by KAM.</span>}
     </div>
   );
 }

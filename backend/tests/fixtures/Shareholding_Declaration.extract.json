@@ -1,0 +1,238 @@
+{
+  "type": "extract",
+  "job_id": "01a0fc95-720d-79e2-b501-ce0b62011521",
+  "status": "completed",
+  "usage": {
+    "pages_total": 1,
+    "pages_processed": 1,
+    "pages_succeeded": 1,
+    "pages_failed": 0,
+    "pages_discarded": 0
+  },
+  "result": {
+    "company_name": "Sharma Foods Private Limited",
+    "as_of_date": "01/09/2026",
+    "shareholders": [
+      {
+        "name": "Anil Sharma",
+        "holder_type": "individual",
+        "percentage": "40"
+      },
+      {
+        "name": "Priya Sharma",
+        "holder_type": "individual",
+        "percentage": "30"
+      },
+      {
+        "name": "Sharma Holdings LLP",
+        "holder_type": "llp",
+        "percentage": "30"
+      }
+    ],
+    "entity_partners": [
+      {
+        "entity_name": "Sharma Holdings LLP",
+        "partner_name": "Rakesh Sharma",
+        "percentage": "60"
+      },
+      {
+        "entity_name": "Sharma Holdings LLP",
+        "partner_name": "Meera Sharma",
+        "percentage": "40"
+      }
+    ]
+  },
+  "annotations": {
+    "company_name": {
+      "confidence": 0.9999999105930515,
+      "sources": [
+        {
+          "page_num": 1,
+          "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+          "filename": "Shareholding_Declaration.pdf"
+        }
+      ]
+    },
+    "as_of_date": {
+      "confidence": 0.9999999880790729,
+      "sources": [
+        {
+          "page_num": 1,
+          "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+          "filename": "Shareholding_Declaration.pdf"
+        }
+      ]
+    },
+    "shareholders": [
+      {
+        "name": {
+          "confidence": 1,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        },
+        "holder_type": {
+          "confidence": 1,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        },
+        "percentage": {
+          "confidence": 0.9999998807907392,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        }
+      },
+      {
+        "name": {
+          "confidence": 0.9999999602635757,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        },
+        "holder_type": {
+          "confidence": 1,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        },
+        "percentage": {
+          "confidence": 1,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        }
+      },
+      {
+        "name": {
+          "confidence": 0.9999999602635757,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        },
+        "holder_type": {
+          "confidence": 1,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        },
+        "percentage": {
+          "confidence": 1,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        }
+      }
+    ],
+    "entity_partners": [
+      {
+        "entity_name": {
+          "confidence": 0.9999999602635757,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        },
+        "partner_name": {
+          "confidence": 0.9999998410543579,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        },
+        "percentage": {
+          "confidence": 0.9999999403953636,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        }
+      },
+      {
+        "entity_name": {
+          "confidence": 0.9999999602635757,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        },
+        "partner_name": {
+          "confidence": 0.9999999205271596,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        },
+        "percentage": {
+          "confidence": 0.9999998807907392,
+          "sources": [
+            {
+              "page_num": 1,
+              "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+              "filename": "Shareholding_Declaration.pdf"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "version": 1,
+  "source_map": {
+    "01a0fc95-720d-7a00-b5b5-fdf6f8690e71:1": {
+      "document_id": "01a0fc95-720d-7a00-b5b5-fdf6f8690e71",
+      "filename": "Shareholding_Declaration.pdf"
+    }
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "type": "extract",
+  "job_id": "01a0fc94-327e-7a03-8c6a-bc06b3a5445f",
+  "status": "completed",
+  "usage": {
+    "pages_total": 1,
+    "pages_processed": 1,
+    "pages_succeeded": 1,
+    "pages_failed": 0,
+    "pages_discarded": 0
+  },
+  "result": {
+    "gstin": "27AABCS1429E1Z8",
+    "legal_name": "SHARMA FOODS PRIVATE LIMITED",
+    "trade_name": "Sharma Foods",
+    "constitution_of_business": "Private Limited Company",
+    "principal_place_address": "12 Mahatma Gandhi Marg, Navi Mumbai - 400703, Maharashtra",
+    "date_of_liability": "04/08/2021",
+    "registration_type": "Regular Taxpayer",
+    "validity_from": "04/08/2021",
+    "validity_to": "Not Applicable"
+  },
+  "annotations": {
+    "gstin": {
+      "confidence": 0.9999999083005847,
+      "sources": [
+        {
+          "page_num": 1,
+          "document_id": "01a0fc94-327e-7a31-ae75-740f23e6d9ab",
+          "filename": "GST_Certificate.pdf"
+        }
+      ]
+    },
+    "legal_name": {
+      "confidence": 1,
+      "sources": [
+        {
+          "page_num": 1,
+          "document_id": "01a0fc94-327e-7a31-ae75-740f23e6d9ab",
+          "filename": "GST_Certificate.pdf"
+        }
+      ]
+    },
+    "trade_name": {
+      "confidence": 0.9999999403953636,
+      "sources": [
+        {
+          "page_num": 1,
+          "document_id": "01a0fc94-327e-7a31-ae75-740f23e6d9ab",
+          "filename": "GST_Certificate.pdf"
+        }
+      ]
+    },
+    "constitution_of_business": {
+      "confidence": 0.9999995628996,
+      "sources": [
+        {
+          "page_num": 1,
+          "document_id": "01a0fc94-327e-7a31-ae75-740f23e6d9ab",
+          "filename": "GST_Certificate.pdf"
+        }
+      ]
+    },
+    "principal_place_address": {
+      "confidence": 0.9999999337726408,
+      "sources": [
+        {
+          "page_num": 1,
+          "document_id": "01a0fc94-327e-7a31-ae75-740f23e6d9ab",
+          "filename": "GST_Certificate.pdf"
+        }
+      ]
+    },
+    "date_of_liability": {
+      "confidence": 1,
+      "sources": [
+        {
+          "page_num": 1,
+          "document_id": "01a0fc94-327e-7a31-ae75-740f23e6d9ab",
+          "filename": "GST_Certificate.pdf"
+        }
+      ]
+    },
+    "registration_type": {
+      "confidence": 0.9999999205271596,
+      "sources": [
+        {
+          "page_num": 1,
+          "document_id": "01a0fc94-327e-7a31-ae75-740f23e6d9ab",
+          "filename": "GST_Certificate.pdf"
+        }
+      ]
+    },
+    "validity_from": {
+      "confidence": 1,
+      "sources": [
+        {
+          "page_num": 1,
+          "document_id": "01a0fc94-327e-7a31-ae75-740f23e6d9ab",
+          "filename": "GST_Certificate.pdf"
+        }
+      ]
+    },
+    "validity_to": {
+      "confidence": 0.9999999403953636,
+      "sources": [
+        {
+          "page_num": 1,
+          "document_id": "01a0fc94-327e-7a31-ae75-740f23e6d9ab",
+          "filename": "GST_Certificate.pdf"
+        }
+      ]
+    }
+  },
+  "version": 1,
+  "source_map": {
+    "01a0fc94-327e-7a31-ae75-740f23e6d9ab:1": {
+      "document_id": "01a0fc94-327e-7a31-ae75-740f23e6d9ab",
+      "filename": "GST_Certificate.pdf"
+    }
+  }
+}
