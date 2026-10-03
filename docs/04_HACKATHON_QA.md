@@ -132,7 +132,7 @@ human-only (A0); and we deliberately use no level where the AI decides (A4).
 
 **D1. Why n8n?**
 It is the orchestrator and it is visible: ops can open the workflow and see each step. It runs extraction, memory, cross-checks and
-the voice chase as two workflows (37 nodes) with native Cognee nodes, and every step can fail without stopping the batch. It is one of the
+the voice chase as two workflows (43 nodes) with native Cognee nodes, and every step can fail without stopping the batch. It is one of the
 hackathon's partner tools and it earns its place: remove it and the backend falls back to an in-process pipeline, but you lose the
 visible, editable workflow.
 
@@ -157,7 +157,7 @@ Determinism and evidence. PAN type, GSTIN-contains-PAN, effective ownership and 
 so results are repeatable and auditable.
 
 **D7. Why FastAPI and SQLite?**
-FastAPI for typed, documented endpoints (33) and server-sent events; SQLite (WAL mode) as the single system of record so Cognee can fail
+FastAPI for typed, documented endpoints (35) and server-sent events; SQLite (WAL mode) as the single system of record so Cognee can fail
 without losing a case. It is a prototype choice: production would use Postgres.
 
 **D8. What if Cognee is down?**
@@ -235,8 +235,7 @@ A Sarvam Samvaad agent. It is configured in the Sarvam console and driven by var
 Hindi and English, the documents to send and where to upload.
 
 **F2. Has it called a real merchant?**
-No. We verified the agent live against a **scripted merchant** (voiced with Sarvam text-to-speech) in seven scenarios. Placing real phone calls needs
-telephony, which is not set up yet. In n8n that is one placeholder node.
+Not yet. The Send Voice Chase button places a real outbound call through Sarvam, but the first real call has not been made. We verified the agent live against a **scripted merchant** (voiced with Sarvam text-to-speech) in seven scenarios. Calling is built (a number box in the drawer, n8n places the call and polls Sarvam until it ends, the transcript lands on the case); the first real call is the remaining step.
 
 **F3. What did you test?**
 Opening with the right name and item count; agreeing; busy (asks a callback time); asking for English (switches); "when will I be approved?" (no promise,
@@ -323,7 +322,7 @@ OCR does not do. And the AI is separated from the decision by design and enforce
 
 **I2. What did you build in the time, and what is mocked?**
 Built and tested: upload, extraction, 10 checks, routing, CRM form, evidence viewer, Cognee memory and Ask, two n8n workflows, the voice agent and call
-history, the maker/checker guard. Mocked: registries. Not built: telephony, DPDP consent record, authentication, CKYCR, monitoring.
+history, the maker/checker guard. Mocked: registries. Built but not yet used on a real phone: outbound calling. Not built: DPDP consent record, authentication, CKYCR, monitoring.
 
 **I3. Who is liable if the AI misses something?**
 The decision is human: the KAM and Compliance approve. The AI produces evidence and routes; it cannot approve. Liability and process stay with Paytm's maker-checker.
@@ -378,8 +377,8 @@ Separating reading from deciding made the system both safer and easier to build:
 | Upload to routed case | about 108 s through n8n (8 documents) |
 | Check runtime | under 1 s |
 | AI teammates | 5 (+ 2 human roles) |
-| n8n | 2 workflows, 37 nodes, native Cognee nodes |
-| Endpoints | 33 |
-| Tests | 64 backend, 21 frontend |
+| n8n | 2 workflows, 43 nodes, native Cognee nodes |
+| Endpoints | 35 |
+| Tests | 81 backend, 24 frontend |
 | Voice scenarios verified | 7 (live agent, scripted merchant) plus the opening line |
-| Not built | telephony, DPDP consent record, authentication, CKYCR, Day-100 monitoring |
+| Not built | DPDP consent record, authentication, CKYCR, Day-100 monitoring (outbound calling is built; no real call yet) |

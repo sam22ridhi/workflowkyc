@@ -48,6 +48,9 @@ copy .env.example .env        &REM then fill in SARVAM_API_KEY and COGNEE_API_KE
 | `COGNEE_TIMEOUT_SECONDS` | `60` | Per-request timeout for Cognee calls. |
 | `SARVAM_AGENT_ID`, `SARVAM_API_KEY_NEW_FOR_VOICE` | | Samvaad voice agent for Voice Chase. Needs an **agent** API key from the Sarvam console, not the Document Intelligence key. Setup: [`voice/SARVAM_AGENT_SETUP.md`](voice/SARVAM_AGENT_SETUP.md). |
 | `SARVAM_ORG_ID`, `SARVAM_WORKSPACE_ID` | workspace values | Sarvam org / workspace for the agent. |
+| `SARVAM_CONNECTION_ID`, `SARVAM_AGENT_PHONE_NUMBER` | | The connected Twilio connection and the number the agent calls from (E.164). Required to place calls. |
+| `SARVAM_AGENT_VERSION` | `1` | Version of the agent to call with. A wrong value shows up as a Sarvam 404 on the case timeline. |
+| `SARVAM_CALLBACK_URL` | | Optional public URL for Sarvam's call-completed webhook. Not needed: results are polled. |
 | `N8N_VOICE_WEBHOOK_URL` | | `http://localhost:5678/webhook/karyakarta-voice-chase`: n8n workflow that places the call. Empty: the timeline says "Voice call not placed". |
 
 Frontend: `VITE_API_URL` (default `http://localhost:8765`) in `workflowkyc/.env.local` if the backend runs elsewhere.
@@ -107,6 +110,7 @@ shows `failed` but everything else works.
 | `GET /mock-registry/{id}` | The MOCK MCA / GST / penny-drop record used by the checks |
 | `GET /cases/{id}/voice-chase/context`, `POST /cases/{id}/voice-chase/result` | Voice agent variables + opening line (merchant-fixable items only); call outcome (stored as a call record, shown on the case) |
 | `POST /cases/{id}/memory/items` | n8n reports the dataset's `{id, name}` items so answers can name their source documents |
+| `POST /cases/{id}/voice-chase/call`, `GET /cases/{id}/voice-chase/attempts/{attempt_id}` | Place the outbound call through Sarvam; poll its status and transcript (called by n8n) |
 | `GET /voice-calls/{id}/memory-summary`, `POST /voice-calls/{id}/memory/result` | Cognee: what n8n stores for a finished call; report-back |
 
 ## 5. How it works (short)
@@ -121,10 +125,10 @@ shows `failed` but everything else works.
   structured summary of fields and checks; cognify once per batch. Cognee answers questions; it never decides pass/fail.
 
 ## 6. Tests
-Backend: `.venv\Scripts\python.exe -m pytest -q` (64 tests): validators, schemas, box location on real Sarvam fixtures,
+Backend: `.venv\Scripts\python.exe -m pytest -q` (81 tests): validators, schemas, box location on real Sarvam fixtures,
 cross-checks on the planted issues, CRM form, memory (fake store), Cognee outage, seeded-case coherence, and an
 end-to-end integration test on the 8 real PDFs with recorded Sarvam responses and a fake Cognee.
-Frontend: `cd workflowkyc && npm test` (21 render tests, jsdom): the dashboard, case overview, upload screen and live
+Frontend: `cd workflowkyc && npm test` (24 render tests, jsdom): the dashboard, case overview, upload screen and live
 hooks rendered against real backend responses captured in `src/test/fixtures/`. Re-capture them after changing the API
 (start the backend after `seed.bat --reset --hero-docs`, then `curl` the endpoints listed in `src/test/ui.test.tsx`).
 Neither suite calls Sarvam or Cognee. The PDF viewer (pdf.js) is not exercised in jsdom; check it in a browser.
@@ -146,6 +150,10 @@ Neither suite calls Sarvam or Cognee. The PDF viewer (pdf.js) is not exercised i
 | Voice probe: `Failed to get signed URL: 401` / "Invalid API key format" | `SARVAM_API_KEY_NEW_FOR_VOICE` is a standard Sarvam key. Create an agent API key in the console (see `voice/SARVAM_AGENT_SETUP.md` section 0). |
 | Voice probe: 404 "App not found for the interaction type" | Wrong agent id, or the probe is in chat mode: the agent is call-only (the probe defaults to `--mode call`). |
 | Server stops answering after a code change | Open browser tabs hold live-update streams; `run.bat` now limits shutdown to 2 s. If it still hangs, close the terminal and run `run.bat` again. |
+| "Voice call not placed: … is empty in backend/.env" | The setting is missing, or the backend was not restarted after editing `.env`. `run.bat` reloads on code changes only, so stop it and start it again. |
+| "Voice call not placed: Sarvam refused the call (HTTP 404)" | Check `SARVAM_AGENT_ID`, `SARVAM_AGENT_VERSION` (try the agent's latest published version) and `SARVAM_CONNECTION_ID`. |
+| "Voice call not placed: … (HTTP 4xx)" about the number | The number must be international (+91…). A Twilio trial account can usually call only verified numbers, and the destination country must be enabled for calling. |
+| A voice call is placed but nothing appears on the case | n8n polls every 15 s for up to 15 minutes. Check the *Karyakarta - Voice chase* execution in n8n and the attempt in the Sarvam console. |
 | Port 8000 errors | Use 8765 (`run.bat`), and `VITE_API_URL` if you change it. |
 | `UnicodeEncodeError` in a Windows console | Set `PYTHONIOENCODING=utf-8`; the seed script already does this for its own output. |
 | Uploaded file type wrong (e.g. PAN vs GST) | Type comes from the filename, slot, or OCR keywords; fix with `POST /api/documents/{id}/type` and re-extract. |

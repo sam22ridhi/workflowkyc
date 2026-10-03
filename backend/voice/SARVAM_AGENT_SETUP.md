@@ -131,26 +131,27 @@ For any other case, take the values from `GET http://localhost:8765/api/cases/<c
 | 7 | "Wrong number" | Apologise and end. Outcome wrong_number. |
 | 8 | "Director wala issue kya hai?" (signatory) | Not discuss it; say Priya will get back. |
 
-## 7. How it connects (now and later)
-
-Two n8n entry points in workflow "Karyakarta - Voice chase":
-- `POST /webhook/karyakarta-voice-chase {case_id}`: start a chase (the backend calls this when the KAM clicks Voice Chase).
-- `POST /webhook/karyakarta-voice-result {case_id, outcome, summary, transcript:[{role,text}], call_id}`: a call finished.
-  It records the call on the case, stores the summary in the case's Cognee dataset (native Cognee node), rebuilds the
-  graph, and the KAM can then ask "what did the merchant say?". Sarvam's call-completed callback should point here
-  (n8n must be reachable from the internet for that, for example through a tunnel); a mapping node is needed once
-  Sarvam's callback payload format is known.
+## 7. How a call is placed (Send Voice Chase)
 
 ```
-KAM clicks Voice Chase ─> POST /api/cases/{id}/action {action: voice}
-   └─> backend posts {case_id} to the n8n webhook N8N_VOICE_WEBHOOK_URL (workflow "Karyakarta - Voice chase")
-         └─> n8n: GET /voice-chase/context ─> Anything to chase? ─> [Place call: placeholder] ─> POST /voice-chase/result
+KAM presses Call now (number box, validated) ─> POST /api/cases/{id}/action {voice, phone}
+   └─> backend: validate, block a second call in progress, hand {case_id, to_number} to n8n (N8N_VOICE_WEBHOOK_URL)
+         └─> n8n "Karyakarta - Voice chase": get agent context ─> POST backend /voice-chase/call
+               └─> backend ─> Sarvam POST /api/outbounds/v1/orgs/{org}/workspaces/{ws}/outbounds
+                     (agent id + version, Twilio connection id + number, case variables, Hindi opening line)
+         ─> wait 15 s ─> GET backend /voice-chase/attempts/{id} (Sarvam attempts + transcripts) ─> repeat until the call ends
+         ─> record on the case ─> store in Cognee ─> refresh the graph
 ```
 
-Today the "Place call" node is a placeholder that reports `not_configured`, so the case timeline shows "Voice call not
-placed" with the prepared items. When phone calling is set up, replace that single n8n node with the Sarvam outbound
-call (passing `contact_phone`, `agent_variables`, `initial_bot_message`) and map the call result to
-`{outcome, summary, transcript, call_id}`. Nothing else changes.
+Settings in `backend/.env`: `SARVAM_AGENT_ID`, `SARVAM_API_KEY_NEW_FOR_VOICE`, `SARVAM_CONNECTION_ID`, `SARVAM_AGENT_PHONE_NUMBER`,
+`SARVAM_AGENT_VERSION`. **Restart the backend after editing `.env`.** Results are polled; no public URL is needed.
+
+First real call checklist: (1) restart the backend; (2) the destination number is in international format and, on a Twilio trial
+account, verified; (3) the agent version is right (try 1, then the latest published); (4) press *Call now* and watch *Voice chase
+history* and the timeline: any refusal appears there with Sarvam's reason.
+
+An already-finished call (a rehearsal from the probe, or Sarvam's webhook later) can still be posted to
+`/webhook/karyakarta-voice-result {case_id, outcome, summary, transcript, call_id}`.
 
 ## 8. Verified results (2026-10-02, live agent, scripted merchant)
 

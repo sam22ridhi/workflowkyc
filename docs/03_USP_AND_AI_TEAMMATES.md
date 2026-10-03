@@ -87,7 +87,7 @@ makes them one workflow.
   is a one-branch change in n8n.
 * **Never:** discusses items that need the KAM's judgement, accepts OTPs or card/account numbers, or promises approval.
 * **Proof:** seven scenarios against the live agent, including the OTP refusal, "when will I be approved?" and a wrong number.
-* **Honest status:** no real phone call has been placed yet; the call step is a placeholder awaiting telephony.
+* **Honest status:** the Send Voice Chase button now places a real outbound call (Sarvam over a connected Twilio number) and follows it to the transcript. The first real call to a merchant's phone has not been made yet; the agent itself is verified with a scripted merchant.
 
 ### The people (decision makers)
 * **KAM (maker):** reviews, overrules any finding, approves and forwards. Sees one-click approval on AUTO cases and full
@@ -151,9 +151,9 @@ approves. Every payment company automates the easy 80%. We automate the hard 20%
 4. **Evidence viewer:** click a value, see the box on the real PDF.
 5. **CRM form:** 20 of 20 filled, citations, two conflicts.
 6. **Ask this case:** "Who owns more than 10%?" with the source.
-7. **Voice Chase drawer:** the exact opening line, what the agent will ask, what is held back for the KAM. Then show the
-   **voice call history** from the rehearsal (label it a rehearsal with a scripted merchant) and say phone calling is the next
-   connection.
+7. **Voice Chase drawer:** the exact opening line, what the agent will ask, what is held back for the KAM, the number box.
+   Press **Call now** with your own phone number and take the call. If you have not tested a real call before the demo, show the
+   **voice call history** from a rehearsal instead and label it a rehearsal with a scripted merchant.
 8. **Four-eyes:** as KAM, press *Approve & Forward* (it asks for confirmation on an ESCALATE case), then switch to the
    Compliance persona and approve. If you switch first, the server refuses with "Compliance can act only after the KAM has
    submitted the case": that refusal is itself worth showing.
@@ -164,7 +164,7 @@ walkthrough (the evidence viewer has not been checked in a real browser).
 
 ### What not to claim
 * Real MCA21 / GSTN / CKYCR integration (registries are a labelled mock).
-* A real phone call to a merchant (the agent is verified; calling is not set up).
+* A phone call to a real merchant until you have made one (the agent is verified with a scripted merchant; calling is built and tested but the first real call has not been placed).
 * Hours saved or accuracy percentages (no baseline was measured).
 * DPDP consent capture or user authentication in the backend (not built).
 * Day-100 monitoring (it is the roadmap, built on the same merchant graph).

@@ -110,7 +110,7 @@ def case_detail(session: Session, case: Case) -> CaseDetail:
     return CaseDetail(
         id=case.id, merchantName=case.merchant_name, legalName=case.legal_name,
         entityType=ENTITY_LABELS.get(case.entity_type, case.entity_type), cin=case.cin, gstin=case.gstin,
-        pan=case.pan, registeredAddress=case.registered_address, status=_legacy_case_status(case),
+        pan=case.pan, registeredAddress=case.registered_address, contactName=case.contact_name, contactPhone=case.contact_phone, status=_legacy_case_status(case),
         accountStatus=case.account_status, stage=case.stage,
         stages=[StageItem(id=i + 1, label=l,
                           status="done" if i + 1 < case.stage else "current" if i + 1 == case.stage else "upcoming")

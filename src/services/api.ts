@@ -233,7 +233,7 @@ export async function uploadDocuments(caseId: string, files: File[], slot: strin
   return api<UploadReport>(`/api/cases/${caseId}/documents`, { method: 'POST', body: form });
 }
 
-export const sendCaseAction = (caseId: string, action: string, extra: { channel?: string; note?: string; actor?: string } = {}) =>
+export const sendCaseAction = (caseId: string, action: string, extra: { channel?: string; note?: string; actor?: string; phone?: string } = {}) =>
   postJson(`/api/cases/${caseId}/action`, { action, actor: 'kam', ...extra });
 
 export const askCase = (caseId: string, question: string) => postJson<AskResult>(`/api/cases/${caseId}/ask`, { question });

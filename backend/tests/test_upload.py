@@ -66,7 +66,7 @@ def test_oversize_and_empty_rejected(client, monkeypatch):
 
 
 def test_action_appends_audit_event(client):
-    r = client.post("/api/cases/KYB-20814/action", json={"action": "voice", "channel": "voice"})
+    r = client.post("/api/cases/KYB-20814/action", json={"action": "voice", "channel": "voice", "phone": "+919812345678"})
     assert r.json()["data"]["status"] == "awaiting_merchant"
     titles = [t["title"] for t in r.json()["data"]["timeline"]]
     assert "Voice chase requested" in titles[-2:]          # followed by the n8n hand-off (or "not placed")

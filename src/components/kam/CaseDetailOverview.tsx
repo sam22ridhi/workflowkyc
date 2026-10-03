@@ -29,7 +29,7 @@ interface CaseDetailOverviewProps {
   caseData: MerchantCase;
   onBack: () => void;
   onSwitchRole: () => void;
-  onAction: (action: Action, channel?: string) => void | Promise<void>;
+  onAction: (action: Action, channel?: string, phone?: string) => void | Promise<void>;
   isCompliancePersona?: boolean;
 }
 
@@ -72,9 +72,9 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
     window.setTimeout(() => setToast(null), 4500);
   };
 
-  const run = async (action: Action, success: string, channel?: string) => {
+  const run = async (action: Action, success: string, channel?: string, phone?: string) => {
     try {
-      await onAction(action, channel);
+      await onAction(action, channel, phone);
       showToast(success);
     } catch (e) {
       showToast(`Action failed: ${e instanceof Error ? e.message : String(e)}`, true);
@@ -336,11 +336,14 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
         <VoiceChasePanel
           caseId={caseData.id}
           merchantName={caseData.merchantName}
+          contactName={caseData.contactName ?? undefined}
+          defaultPhone={caseData.contactPhone ?? ''}
           request={chaseRequest}
           onClose={() => setVoiceOpen(false)}
-          onSend={(channel: ChaseChannel) => {
+          onSend={async (channel: ChaseChannel, phone?: string) => {
+            await onAction('voice', channel, phone);          // a refusal (bad number, call in progress) rejects and keeps the drawer open
             setVoiceOpen(false);
-            void run('voice', channel === 'voice' ? 'Voice chase requested. The call status appears in the timeline.' : `${channel === 'whatsapp' ? 'WhatsApp' : 'Email'} request recorded on the timeline.`, channel);
+            showToast(channel === 'voice' ? 'Calling now. Progress and the transcript appear in Voice chase history and the timeline.' : `${channel === 'whatsapp' ? 'WhatsApp' : 'Email'} request recorded on the timeline.`);
           }}
         />
       )}

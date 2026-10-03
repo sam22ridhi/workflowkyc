@@ -174,7 +174,7 @@ describe('Case overview (live case)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Approve & Forward/ }));
     expect(onAction).not.toHaveBeenCalled();                                        // declined
     fireEvent.click(screen.getByRole('button', { name: /Approve & Forward/ }));
-    await waitFor(() => expect(onAction).toHaveBeenCalledWith('approve', undefined));
+    await waitFor(() => expect(onAction).toHaveBeenCalledWith('approve', undefined, undefined));
     expect(confirm).toHaveBeenCalledTimes(2);
     expect(await screen.findByText(/Submitted to the Compliance/)).toBeInTheDocument();
   });
@@ -188,8 +188,47 @@ describe('Case overview (live case)', () => {
     expect(screen.getByText(/NOT RAISED ON THE CALL/)).toBeInTheDocument();             // escalations stay with the KAM
     fireEvent.click(screen.getByRole('button', { name: 'WhatsApp' }));
     fireEvent.click(screen.getByRole('button', { name: /Send whatsapp request/ }));
-    await waitFor(() => expect(onAction).toHaveBeenCalledWith('voice', 'whatsapp'));
+    await waitFor(() => expect(onAction).toHaveBeenCalledWith('voice', 'whatsapp', undefined));        // no number for non-voice channels
     expect(await screen.findByText(/WhatsApp request recorded/)).toBeInTheDocument();
+  });
+
+  it('calls the number entered in the drawer, and only when it is valid', async () => {
+    const { onAction } = setup();
+    fireEvent.click(screen.getByRole('button', { name: /^Voice Chase$/ }));
+    await screen.findByText(/The agent will call Anil Sharma/);
+    const call = screen.getByRole('button', { name: /^Call now$/ });
+    expect(call).toBeDisabled();                                                                      // no number yet
+    const input = screen.getByLabelText(/PHONE NUMBER TO CALL/);
+    fireEvent.change(input, { target: { value: '12345' } });
+    expect(screen.getByText(/does not look like a valid number/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Call now$/ })).toBeDisabled();
+    fireEvent.change(input, { target: { value: '98123 45678' } });
+    expect(screen.getByText('Will call +919812345678.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Call +919812345678 now' }));
+    await waitFor(() => expect(onAction).toHaveBeenCalledWith('voice', 'voice', '+919812345678'));
+    expect(await screen.findByText(/Calling now/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/PHONE NUMBER TO CALL/)).not.toBeInTheDocument();                  // drawer closed after success
+  });
+
+  it('keeps the drawer open and shows the reason when the call is refused', async () => {
+    const onAction = vi.fn().mockRejectedValue(new Error('409 A voice call for this case is still in progress. Wait for it to finish before calling again.'));
+    setup({ onAction });
+    fireEvent.click(screen.getByRole('button', { name: /^Voice Chase$/ }));
+    await screen.findByText(/The agent will call Anil Sharma/);
+    fireEvent.change(screen.getByLabelText(/PHONE NUMBER TO CALL/), { target: { value: '+919812345678' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Call +919812345678 now' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('A voice call for this case is still in progress.');
+    expect(screen.getByRole('alert')).not.toHaveTextContent('409');
+    expect(screen.getByLabelText(/PHONE NUMBER TO CALL/)).toBeInTheDocument();                         // still open
+  });
+
+  it('prefills the number stored on the case', async () => {
+    mockFetch({ '/crm-form': crmFx, '/voice-chase/context': { ok: true, data: VOICE_CTX } });
+    render(<CaseDetailOverview caseData={{ ...hero, contactPhone: '+918888877777' }} onBack={vi.fn()} onSwitchRole={vi.fn()} onAction={vi.fn()} />);
+    fireEvent.click(screen.getByRole('button', { name: /^Voice Chase$/ }));
+    await screen.findByText(/The agent will call/);
+    expect(screen.getByLabelText(/PHONE NUMBER TO CALL/)).toHaveValue('+918888877777');
+    expect(screen.getByRole('button', { name: 'Call +918888877777 now' })).toBeEnabled();
   });
 
   it('shows checker actions for the Compliance persona and reports a failed action', async () => {
@@ -197,7 +236,7 @@ describe('Case overview (live case)', () => {
     setup({ isCompliancePersona: true, onAction });
     expect(screen.queryByRole('button', { name: /Approve & Forward/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Send back/ }));
-    await waitFor(() => expect(onAction).toHaveBeenCalledWith('send_back', undefined));
+    await waitFor(() => expect(onAction).toHaveBeenCalledWith('send_back', undefined, undefined));
     expect(await screen.findByText(/Action failed: 500 boom/)).toBeInTheDocument();
   });
 

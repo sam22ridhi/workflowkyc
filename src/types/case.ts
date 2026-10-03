@@ -48,6 +48,8 @@ export interface MerchantCase {
   lastUpdated: string;
   // live backend fields (absent on the offline sample)
   entityType?: string;
+  contactName?: string | null;
+  contactPhone?: string | null;
   accountStatus?: string;
   stage?: number;
   stages?: LiveStage[];

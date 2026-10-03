@@ -63,8 +63,8 @@ function App() {
     return report;
   };
 
-  const handleCaseAction = async (action: CaseAction, channel?: string) => {
-    await sendCaseAction(kamCaseId, action, { channel, actor: action === 'send_back' || action === 'compliance_approve' ? 'compliance' : 'kam' });
+  const handleCaseAction = async (action: CaseAction, channel?: string, phone?: string) => {
+    await sendCaseAction(kamCaseId, action, { channel, phone, actor: action === 'send_back' || action === 'compliance_approve' ? 'compliance' : 'kam' });
     void kam.reload();
   };
 

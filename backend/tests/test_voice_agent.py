@@ -62,7 +62,7 @@ def test_result_goes_to_timeline(client):
 
 def test_voice_action_is_honest_without_phone_setup(client, monkeypatch):
     monkeypatch.setattr(config, "N8N_VOICE_WEBHOOK_URL", "")
-    tl = client.post("/api/cases/KYB-20817/action", json={"action": "voice", "channel": "voice"}).json()["data"]["timeline"]
+    tl = client.post("/api/cases/KYB-20817/action", json={"action": "voice", "channel": "voice", "phone": "+919812345678"}).json()["data"]["timeline"]
     assert [t["title"] for t in tl[-2:]] == ["Voice chase requested", "Voice call not placed"]
     assert "not configured" in tl[-1]["detail"]
 
@@ -76,8 +76,8 @@ def test_voice_action_hands_off_to_n8n(client, monkeypatch):
 
     monkeypatch.setattr(config, "N8N_VOICE_WEBHOOK_URL", "http://n8n.test/webhook/karyakarta-voice-chase")
     monkeypatch.setattr(httpx, "post", fake_post)
-    tl = client.post("/api/cases/KYB-20817/action", json={"action": "voice", "channel": "voice"}).json()["data"]["timeline"]
-    assert sent["json"] == {"case_id": "KYB-20817"} and tl[-1]["title"] == "Voice chase handed to n8n"
+    tl = client.post("/api/cases/KYB-20817/action", json={"action": "voice", "channel": "voice", "phone": "+919812345678"}).json()["data"]["timeline"]
+    assert sent["json"] == {"case_id": "KYB-20817", "to_number": "+919812345678"} and tl[-1]["title"] == "Voice chase handed to n8n"
     # WhatsApp / email do not trigger the voice workflow
     sent.clear()
     client.post("/api/cases/KYB-20817/action", json={"action": "voice", "channel": "whatsapp"})

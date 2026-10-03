@@ -189,6 +189,8 @@ class CaseDetail(BaseModel):
     gstin: str | None
     pan: str | None
     registeredAddress: str | None
+    contactName: str | None = None
+    contactPhone: str | None = None
     status: Literal["needs_attention", "awaiting_merchant", "ready_for_review"]
     accountStatus: str
     stage: int
@@ -212,4 +214,5 @@ class ActionRequest(BaseModel):
     action: Literal["request", "voice", "approve", "submit_to_compliance", "send_back", "compliance_approve"]
     channel: Literal["voice", "whatsapp", "email"] | None = None
     note: str | None = Field(default=None, max_length=500)
+    phone: str | None = Field(default=None, max_length=40, description="number to call for a voice chase")
     actor: Literal["merchant", "kam", "compliance", "agent"] = "kam"

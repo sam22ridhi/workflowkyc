@@ -34,6 +34,12 @@
               "name": "case_id",
               "value": "={{ $json.body.case_id }}",
               "type": "string"
+            },
+            {
+              "id": "f422606e-6a2c-58ad-bb50-2149917602a6",
+              "name": "to_number",
+              "value": "={{ $json.body.to_number }}",
+              "type": "string"
             }
           ]
         },
@@ -100,51 +106,217 @@
     },
     {
       "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings (start)').first().json.backend_url }}/api/cases/{{ $('Settings (start)').first().json.case_id }}/voice-chase/call",
+        "options": {
+          "timeout": 45000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ to_number: $('Settings (start)').first().json.to_number }) }}"
+      },
+      "id": "278a6bc0-684b-5370-b3db-f7924d1b3bb2",
+      "name": "Place call (Sarvam)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        120
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cefb2648-3dfb-5b7a-a941-c1ca3dd3fa2d",
+              "leftValue": "={{ $json.ok === true }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bc3344d9-027c-5bdc-85dc-4e81774bf4e1",
+      "name": "Call placed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        120
+      ]
+    },
+    {
+      "parameters": {
         "assignments": {
           "assignments": [
             {
-              "id": "1ea2560e-6e0c-5df3-a4d9-45d8d628857f",
+              "id": "560cdb1d-2f2e-5b04-ba91-1160191b239a",
+              "name": "case_id",
+              "value": "={{ $('Settings (start)').first().json.case_id }}",
+              "type": "string"
+            },
+            {
+              "id": "82f29354-d9ad-5b84-8b05-444da27e9c36",
               "name": "outcome",
               "value": "not_configured",
               "type": "string"
             },
             {
-              "id": "5d8cfd6f-95c7-5902-a367-489ad8af1d0c",
+              "id": "b92af917-9c4e-5f05-843d-71865d5b0852",
               "name": "summary",
-              "value": "=Agent context ready ({{ $json.data.agent_variables.issue_count }} item(s): {{ $json.data.agent_variables.documents_needed_en }}). Phone calling is not configured yet.",
+              "value": "={{ ($json.error && typeof $json.error === 'string') ? $json.error : 'The call could not be placed.' }}",
+              "type": "string"
+            },
+            {
+              "id": "b6d4f794-d023-5819-915d-ceb8e429a9ae",
+              "name": "transcript",
+              "value": "={{ [] }}",
+              "type": "array"
+            },
+            {
+              "id": "53e34a6c-987c-5fcd-b4b1-9416f869eb20",
+              "name": "call_id",
+              "value": "",
               "type": "string"
             }
           ]
         },
         "options": {}
       },
-      "id": "d7759259-2278-50d8-aff1-d1a2b94517a9",
-      "name": "Place call (Sarvam phone: set up later)",
+      "id": "b93c22d0-ba09-5c21-8693-ee5afb7902c0",
+      "name": "Call not placed",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        900,
-        120
+        1340,
+        260
       ]
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ $('Settings (start)').first().json.backend_url }}/api/cases/{{ $('Settings (start)').first().json.case_id }}/voice-chase/result",
+        "resume": "timeInterval",
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "id": "e739a08b-df2f-5be8-88b8-9795def9bf97",
+      "name": "Wait before checking",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1340,
+        40
+      ],
+      "webhookId": "eaa8afe0-037d-5364-9b1b-c467c83adfef"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings (start)').first().json.backend_url }}/api/cases/{{ $('Settings (start)').first().json.case_id }}/voice-chase/attempts/{{ $('Place call (Sarvam)').first().json.data.attempt_id }}",
         "options": {
           "timeout": 30000
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ outcome: $json.outcome, summary: $json.summary }) }}"
+        }
       },
-      "id": "7d4d9aa8-4908-5cd5-89a7-e3ac8410c67b",
-      "name": "Report call not placed",
+      "id": "0043a0c1-a20c-5d89-a381-6ced7459316e",
+      "name": "Check call",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1140,
-        120
+        1560,
+        40
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3d100eb7-d544-5101-8111-4849b670f8d2",
+              "leftValue": "={{ ($json.data && $json.data.state === 'done') || $runIndex >= 59 }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "158640e7-f079-53da-89bd-b5e85d42892b",
+      "name": "Call finished or timed out?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1780,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3b552173-cc63-574c-8582-72a7b1ab79ee",
+              "name": "case_id",
+              "value": "={{ $('Settings (start)').first().json.case_id }}",
+              "type": "string"
+            },
+            {
+              "id": "20c7a8bc-fe1d-596f-95a0-4829bc205276",
+              "name": "outcome",
+              "value": "={{ ($json.data && $json.data.state === 'done') ? $json.data.outcome : 'failed' }}",
+              "type": "string"
+            },
+            {
+              "id": "92571787-df6b-5a50-886e-7974e23a3a2c",
+              "name": "summary",
+              "value": "={{ ($json.data && $json.data.state === 'done') ? $json.data.summary : 'No result arrived from Sarvam within 15 minutes. Check the attempt in the Sarvam console.' }}",
+              "type": "string"
+            },
+            {
+              "id": "b2cff6e3-6afb-5b56-bde6-8cc819dc3abe",
+              "name": "transcript",
+              "value": "={{ ($json.data && $json.data.transcript) ? $json.data.transcript : [] }}",
+              "type": "array"
+            },
+            {
+              "id": "67b70e78-9ad3-51ab-94da-516d9de5d08f",
+              "name": "call_id",
+              "value": "={{ ($json.data && $json.data.call_id) ? $json.data.call_id : $('Place call (Sarvam)').first().json.data.attempt_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2ad129b6-9518-549f-b6b6-0fde379653b2",
+      "name": "Result from call",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2000,
+        40
       ]
     },
     {
@@ -164,7 +336,7 @@
       "typeVersion": 4.2,
       "position": [
         900,
-        300
+        320
       ]
     },
     {
@@ -189,6 +361,53 @@
         "assignments": {
           "assignments": [
             {
+              "id": "dea4d5a5-12c4-5d34-8227-84313836334b",
+              "name": "case_id",
+              "value": "={{ $json.body.case_id }}",
+              "type": "string"
+            },
+            {
+              "id": "c399ce11-6eaf-54d3-87d9-05c0fdf5c4c2",
+              "name": "outcome",
+              "value": "={{ $json.body.outcome }}",
+              "type": "string"
+            },
+            {
+              "id": "d5fa671c-fcb6-54e9-ad0d-f0e6e37e08c4",
+              "name": "summary",
+              "value": "={{ $json.body.summary || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "be713066-0a96-5e1b-b33c-0fab922a765e",
+              "name": "transcript",
+              "value": "={{ $json.body.transcript || [] }}",
+              "type": "array"
+            },
+            {
+              "id": "c8048ef8-f599-5ec1-817d-7bdd376ce4d1",
+              "name": "call_id",
+              "value": "={{ $json.body.call_id || '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "64db006a-6c9b-5dbe-b66b-8d033d225c41",
+      "name": "Result from webhook",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2000,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
               "id": "5e4d9f99-4e23-57b3-a5e3-e5ab29650f4d",
               "name": "backend_url",
               "value": "http://host.docker.internal:8765",
@@ -197,7 +416,31 @@
             {
               "id": "d6fddf1a-b474-53f3-ad49-293000b6c8fa",
               "name": "case_id",
-              "value": "={{ $json.body.case_id }}",
+              "value": "={{ $json.case_id }}",
+              "type": "string"
+            },
+            {
+              "id": "962820ae-5bd3-5961-9099-7f4835fe4b31",
+              "name": "outcome",
+              "value": "={{ $json.outcome }}",
+              "type": "string"
+            },
+            {
+              "id": "a8a0501c-f2a8-52b3-9339-911c617a904b",
+              "name": "summary",
+              "value": "={{ $json.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "50fc2789-d630-50ba-a05c-d6933f7f5cce",
+              "name": "transcript",
+              "value": "={{ $json.transcript }}",
+              "type": "array"
+            },
+            {
+              "id": "151c7535-9032-5a63-ad38-62e420607c89",
+              "name": "call_id",
+              "value": "={{ $json.call_id }}",
               "type": "string"
             }
           ]
@@ -209,8 +452,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        220,
-        560
+        2220,
+        300
       ]
     },
     {
@@ -222,15 +465,15 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ outcome: $('Call completed').first().json.body.outcome, summary: $('Call completed').first().json.body.summary || null, transcript: $('Call completed').first().json.body.transcript || null, call_id: $('Call completed').first().json.body.call_id || null }) }}"
+        "jsonBody": "={{ (() => { const r = $('Settings (result)').first().json; return JSON.stringify({ outcome: r.outcome, summary: r.summary || null, transcript: (r.transcript && r.transcript.length) ? r.transcript : null, call_id: r.call_id || null }); })() }}"
       },
       "id": "1ffa3818-ae52-5795-8650-138bedfc3825",
       "name": "Record call on case",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        440,
-        560
+        2440,
+        300
       ]
     },
     {
@@ -262,8 +505,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        660,
-        560
+        2660,
+        300
       ]
     },
     {
@@ -279,8 +522,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        900,
-        480
+        2900,
+        220
       ],
       "onError": "continueRegularOutput"
     },
@@ -303,8 +546,8 @@
       "type": "n8n-nodes-cognee.cognee",
       "typeVersion": 1,
       "position": [
-        1140,
-        480
+        3140,
+        220
       ],
       "credentials": {
         "cogneeApi": {
@@ -333,8 +576,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1380,
-        480
+        3380,
+        220
       ],
       "onError": "continueRegularOutput"
     },
@@ -351,8 +594,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1620,
-        480
+        3620,
+        220
       ],
       "onError": "continueRegularOutput"
     },
@@ -371,8 +614,8 @@
       "type": "n8n-nodes-cognee.cognee",
       "typeVersion": 1,
       "position": [
-        1860,
-        480
+        3860,
+        220
       ],
       "credentials": {
         "cogneeApi": {
@@ -398,8 +641,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2100,
-        480
+        4100,
+        220
       ],
       "onError": "continueRegularOutput"
     }
@@ -442,7 +685,7 @@
       "main": [
         [
           {
-            "node": "Place call (Sarvam phone: set up later)",
+            "node": "Place call (Sarvam)",
             "type": "main",
             "index": 0
           }
@@ -456,11 +699,91 @@
         ]
       ]
     },
-    "Place call (Sarvam phone: set up later)": {
+    "Place call (Sarvam)": {
       "main": [
         [
           {
-            "node": "Report call not placed",
+            "node": "Call placed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call placed?": {
+      "main": [
+        [
+          {
+            "node": "Wait before checking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call not placed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait before checking": {
+      "main": [
+        [
+          {
+            "node": "Check call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check call": {
+      "main": [
+        [
+          {
+            "node": "Call finished or timed out?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call finished or timed out?": {
+      "main": [
+        [
+          {
+            "node": "Result from call",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait before checking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Result from call": {
+      "main": [
+        [
+          {
+            "node": "Settings (result)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call not placed": {
+      "main": [
+        [
+          {
+            "node": "Settings (result)",
             "type": "main",
             "index": 0
           }
@@ -468,6 +791,17 @@
       ]
     },
     "Call completed": {
+      "main": [
+        [
+          {
+            "node": "Result from webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Result from webhook": {
       "main": [
         [
           {

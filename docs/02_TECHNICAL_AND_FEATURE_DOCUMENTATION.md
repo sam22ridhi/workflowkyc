@@ -32,14 +32,14 @@ Principle: *the model reads, code checks, the model explains, a human approves.*
 | Auto-filled CRM form with citations and conflicts | **Built, tested** | 20 fields; overrides are audited |
 | PDF evidence viewer with bounding boxes | **Built** | Not exercised in a real browser during testing (pdf.js cannot run in the test environment) |
 | Merchant Digital Twin (Cognee graph) + Ask this case | **Built, live-verified** | Cognee Cloud, one dataset per case |
-| n8n orchestration with native Cognee nodes | **Built, live-verified** | 2 workflows, 37 nodes |
-| Hindi voice agent (Sarvam Samvaad) | **Agent verified live** | 7 scenarios with a scripted merchant; **phone calling not set up** |
+| n8n orchestration with native Cognee nodes | **Built, live-verified** | 2 workflows, 43 nodes |
+| Hindi voice agent (Sarvam Samvaad) | **Agent verified live** | 7 scenarios with a scripted merchant over a call session |
 | Voice call history, transcript, memory of calls | **Built, verified** | Via rehearsal calls through n8n into Cognee |
 | Maker / checker with server-side role and stage guard | **Built, tested** | Roles, not user accounts |
 | Append-only audit trail + live event stream | **Built, tested** | SSE |
 | MCA21 / GSTN / bank penny-drop | **Mock** | `app/registry/mock_registry.py`, clearly labelled |
 | WhatsApp / email chase | **Not sent** | The action is recorded on the timeline only |
-| Real telephony (outbound call to the merchant's phone) | **Not built** | One placeholder node in n8n |
+| Outbound phone call to the merchant (Sarvam Instant Outbound over a connected Twilio number) | **Built, no real call placed yet** | Button, validation, n8n place-and-poll, result recording are tested; the exact Sarvam request was checked by a dry run. The first real call is still to be made |
 | DPDP consent capture in the backend | **Not built** | The portal shows consent controls and the statutory text; nothing is stored |
 | CKYCR lookup | **Not built** | |
 | Day-100 transaction monitoring | **Not built** | Roadmap: same merchant graph plus a transaction feed |
@@ -276,11 +276,24 @@ Every call result becomes a `VoiceCall` record (outcome, summary, transcript, Sa
 appears on the case's **Voice chase history**, writes a timeline event, and is stored in Cognee so the KAM can ask what the
 merchant said. Outcomes: reached, promised upload, callback requested, no answer, busy, wrong number, failed, not placed.
 
-### 8.5 What is not set up
-Placing a real outbound call to the merchant's phone number. In n8n that is one placeholder node; the result comes back
-through a second webhook (`karyakarta-voice-result`) that Sarvam's call-completed callback should call (this needs n8n to be
-reachable from the internet and a mapping for Sarvam's payload format). Until then the timeline says *Voice call not placed*.
-Chasing is **triggered by the KAM**; an automatic trigger on the ASK route is a one-branch change in n8n.
+### 8.5 Placing the call (Sarvam Instant Outbound)
+Pressing **Call now** in the Voice Chase drawer (number box prefilled from the case, validated as an international number,
+button names the number it will call) does this:
+1. The backend validates the number, blocks a second call while one is in progress, stores the number on the case and
+   hands `{case_id, to_number}` to n8n. The timeline shows the number masked.
+2. n8n gets the agent context and calls the backend, which sends **one request to Sarvam** (`POST …/outbounds`): your
+   agent, the connected Twilio number as the caller, the live case variables and the Hindi opening line.
+3. n8n waits and polls every 15 seconds (up to 15 minutes) until Sarvam reports the call ended. **No public URL is
+   needed**: the result is read from Sarvam's attempts and transcripts APIs. (`SARVAM_CALLBACK_URL` can optionally give Sarvam a
+   webhook instead.)
+4. The outcome (reached, no answer, busy, failed), duration and the transcript are recorded on the case, stored in Cognee
+   and shown in *Voice chase history*. A call that cannot be placed is recorded as *Voice call not placed* with Sarvam's reason.
+
+**Status:** tested with Sarvam mocked, the polling and transcript parsing checked against real Sarvam data from earlier
+sessions, and the exact request verified by a dry run. **No real call has been placed yet.** Things that can still differ on
+the first call: the agent *version* (set to 1), whether the Twilio account may call the destination country (a trial account can
+usually call only verified numbers), and Sarvam's status vocabulary for unanswered calls. Each of these shows up as a readable
+reason on the case timeline.
 
 ---
 
@@ -304,9 +317,9 @@ Chasing is **triggered by the KAM**; an automatic trigger on the ASK route is a 
 
 Every step that can fail continues instead of stopping the run.
 
-### 9.2 Karyakarta - Voice chase (17 nodes)
-* **Start** (`POST /webhook/karyakarta-voice-chase {case_id}`): get agent context, anything to chase?, place call (placeholder), report.
-* **Result** (`POST /webhook/karyakarta-voice-result {case_id, outcome, summary, transcript, call_id}`): record call on case,
+### 9.2 Karyakarta - Voice chase (23 nodes)
+* **Start** (`POST /webhook/karyakarta-voice-chase {case_id, to_number}`): get agent context, anything to chase?, **place call (Sarvam)**, call placed?, wait 15 s, check call, finished or timed out?, record result. A refused call goes to *Call not placed* with the reason.
+* **Result** (`POST /webhook/karyakarta-voice-result {case_id, outcome, summary, transcript, call_id}`) for an already finished call, and the end of the Start flow: record call on case,
   worth remembering?, get memory summary, **Cognee: store call** (native), report, mark graph building,
   **Cognee: refresh knowledge graph** (native), report.
 
@@ -357,7 +370,7 @@ review for that, plus data residency and retention terms.
 
 ---
 
-## 13. API reference (33 endpoints, all under `/api`, JSON envelope `{ok, data}`)
+## 13. API reference (35 endpoints, all under `/api`, JSON envelope `{ok, data}`)
 
 | Method and path | Purpose |
 |---|---|
@@ -377,6 +390,7 @@ review for that, plus data residency and retention terms.
 | `GET /cases/{id}/crm-form`, `POST /cases/{id}/crm-form/override` | CRM form; audited override |
 | `POST /cases/{id}/action` (alias `/actions`) | voice, request, approve, submit_to_compliance, send_back, compliance_approve (role and stage guarded) |
 | `GET /cases/{id}/voice-chase/context`, `POST /cases/{id}/voice-chase/result` | Agent variables and opening line; record a finished call |
+| `POST /cases/{id}/voice-chase/call`, `GET /cases/{id}/voice-chase/attempts/{attempt_id}` | Place the outbound call through Sarvam; poll its status and transcript (called by n8n) |
 | `GET /voice-calls/{id}/memory-summary`, `POST /voice-calls/{id}/memory/result` | Call text for Cognee; report-back |
 | `GET /cases/{id}/timeline`, `GET /cases/{id}/events`, `GET /events` | Timeline; live event streams |
 | `GET /mock-registry/{id}` | The mock MCA / GST / penny-drop record the checks compare against |
@@ -403,6 +417,7 @@ Interactive documentation is generated at `http://localhost:8765/docs`.
 | Variable | Meaning |
 |---|---|
 | `SARVAM_API_KEY` | Document Intelligence key (also used by the voice probe's speech-to-text and text-to-speech) |
+| `SARVAM_CONNECTION_ID`, `SARVAM_AGENT_PHONE_NUMBER`, `SARVAM_AGENT_VERSION`, `SARVAM_CALLBACK_URL` | Outbound calling: the connected Twilio connection and number, the agent version (default 1), and an optional public webhook URL. Restart the backend after changing `.env` |
 | `SARVAM_AGENT_ID`, `SARVAM_API_KEY_NEW_FOR_VOICE`, `SARVAM_ORG_ID`, `SARVAM_WORKSPACE_ID` | Voice agent. The runtime needs an **agent API key** (44 characters); the standard key is rejected with 401. The agent is call-only |
 | `COGNEE_BASE_URL`, `COGNEE_TENANT_ID`, `COGNEE_USER_ID`, `COGNEE_API_KEY` | Cognee Cloud |
 | `N8N_WEBHOOK_URL`, `N8N_VOICE_WEBHOOK_URL`, `N8N_FALLBACK_INPROCESS` | n8n entry points and fallback |
@@ -415,8 +430,8 @@ Interactive documentation is generated at `http://localhost:8765/docs`.
 
 | Suite | Count | What it covers |
 |---|---|---|
-| Backend (pytest) | **64** | Extraction normalisation on **real Sarvam responses**, box location, validators, the 10 checks on the planted issues, CRM form, memory with a fake store, Cognee outage and circuit breaker, voice context and call records, role and stage guard, and an end-to-end test on the 8 real PDFs with recorded Sarvam responses |
-| Frontend (Vitest) | **21** | Dashboard, case overview, evidence navigation, Ask, voice drawer and history, upload, offline fallback, rendered against **real backend responses** |
+| Backend (pytest) | **81** | Extraction normalisation on **real Sarvam responses**, box location, validators, the 10 checks on the planted issues, CRM form, memory with a fake store, Cognee outage and circuit breaker, voice context and call records, role and stage guard, and an end-to-end test on the 8 real PDFs with recorded Sarvam responses |
+| Frontend (Vitest) | **24** | Dashboard, case overview, evidence navigation, Ask, voice drawer and history, upload, offline fallback, rendered against **real backend responses** |
 | Live, manual | n/a | Full upload through n8n with live Sarvam and Cognee; voice agent scenarios; Cognee 409 behaviour reproduced and fixed |
 
 The tests never call Sarvam or Cognee. **Not verified in a real browser:** the layout, the pdf.js rendering and highlight boxes,
@@ -444,7 +459,7 @@ No manual-baseline measurement exists. Do not quote hours saved unless you can s
 
 **Limitations (be ready to say these):**
 1. Registries are a **mock**. The checks are real; the "official record" they compare against is synthetic.
-2. Voice: the agent works, but **no real phone call has been placed**; chasing is KAM-triggered.
+2. Voice: the agent works and calling is built, but **no real phone call has been placed yet**; chasing is KAM-triggered.
 3. **No authentication.** Roles are asserted in the request; the guard is real but identities are not.
 4. **DPDP consent is not recorded** by the backend; no withdrawal or retention flow.
 5. WhatsApp and email are timeline entries, not messages.
@@ -455,7 +470,7 @@ No manual-baseline measurement exists. Do not quote hours saved unless you can s
 10. Built and tested for a handful of cases, not for load.
 
 **Roadmap (each is one module or node):**
-telephony and Sarvam call-completed callback · real MCA21 / GSTN / penny-drop adapters · CKYCR check · automatic chase
+first real phone call and (optionally) Sarvam's call-completed callback · real MCA21 / GSTN / penny-drop adapters · CKYCR check · automatic chase
 on the ASK route · authenticated users with person-level four-eyes and a DPDP consent ledger · WhatsApp/email dispatch ·
 Day-100 monitoring (same merchant graph plus a transaction feed) · stages 6 to 8 integrations.
 
@@ -473,7 +488,7 @@ workflowkyc/
 │   ├── scripts/              voice_agent_probe.py and Sarvam helpers
 │   ├── seed/                 synthetic Sharma Foods PDFs + demo seeding
 │   ├── demo_cache/           recorded Sarvam results and saved answers
-│   └── tests/                64 tests
+│   └── tests/                81 tests
 └── docs/                     these documents
 ```
 

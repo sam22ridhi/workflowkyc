@@ -39,6 +39,12 @@ SARVAM_AGENT_API_KEY = (os.environ.get("SARVAM_API_KEY_NEW_FOR_VOICE", "").strip
                         or os.environ.get("SARVAM_AGENT_API_KEY", "").strip()
                         or os.environ.get("SARVAM_API_KEY", ""))
 N8N_VOICE_WEBHOOK_URL = os.environ.get("N8N_VOICE_WEBHOOK_URL", "").strip()
+# Outbound calling (Sarvam Instant Outbound + a connected Twilio number). The call result is polled, so no public URL is needed;
+# SARVAM_CALLBACK_URL is optional (a publicly reachable URL Sarvam can POST the call-completed webhook to).
+SARVAM_CONNECTION_ID = os.environ.get("SARVAM_CONNECTION_ID", "").strip()
+SARVAM_AGENT_PHONE_NUMBER = os.environ.get("SARVAM_AGENT_PHONE_NUMBER", "").strip()
+SARVAM_AGENT_VERSION = int(os.environ.get("SARVAM_AGENT_VERSION", "1") or 1)
+SARVAM_CALLBACK_URL = os.environ.get("SARVAM_CALLBACK_URL", "").strip()
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 ALLOWED_EXTENSIONS = {".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}

@@ -34,7 +34,7 @@ flowchart LR
 
     subgraph MOCK[Mock today, real tomorrow]
         REG[MCA · GSTN · bank penny-drop]
-        TEL[Telephony]
+        TEL[Sarvam outbound + Twilio number]
     end
 
     M -->|uploads documents| UI
@@ -46,15 +46,16 @@ flowchart LR
     API -->|read documents| DI
     N8N -->|native Cognee nodes| COG
     API -->|ask the case| COG
-    N8N -.->|place call, later| TEL
-    TEL -.-> VA
-    VA -.->|call outcome webhook| N8N
+    N8N -->|place call, then poll| API
+    API -->|outbound call| TEL
+    TEL --> VA
+    N8N -->|poll attempt + transcript| API
     API -->|compare against| REG
     VA -->|speaks to| M
 ```
 
-Solid lines exist and were exercised. Dotted lines are the seams that need your phone setup (telephony) and a public
-address for n8n (call-completed callback).
+Solid lines exist and were exercised, except the final hop: the outbound phone call has been tested with Sarvam mocked and
+verified by a dry run, but **no real call has been placed yet**.
 
 ---
 
@@ -96,7 +97,7 @@ flowchart TB
 
 | # | Teammate | Technology | Autonomy | Hard limit |
 |---|---|---|---|---|
-| 1 | Orchestrator | n8n (2 workflows, 37 nodes) | Runs the whole pipeline on upload with no human step | Cannot approve; failures never stop a batch |
+| 1 | Orchestrator | n8n (2 workflows, 43 nodes) | Runs the whole pipeline on upload with no human step | Cannot approve; failures never stop a batch |
 | 2 | Reader | Sarvam Document Intelligence | Reads every document, locates every value on the page | Reads only; every value carries a confidence and a page box |
 | 3 | Verifier | Plain Python rules | Runs 10 cross-document checks and triages the case | Deterministic, repeatable, evidence on every result. **No LLM decides pass or fail** |
 | 4 | Digital Twin analyst | Cognee Cloud (graph + its LLM) | Builds the merchant graph, answers questions with sources | Explains and answers; never decides |
@@ -206,18 +207,22 @@ sequenceDiagram
     API->>N: webhook {case_id}
     N->>API: GET /voice-chase/context
     Note over API: only merchant-fixable items.<br/>Escalations are never sent to the agent
-    N-->>V: place call (placeholder until telephony is set up)
-    V->>M: Hindi call with case variables
+    N->>API: place call (Sarvam outbound, Twilio number)
+    API-->>V: call the merchant with the case variables
+    V->>M: Hindi call
     M-->>V: answers
-    V-->>N: call completed {outcome, transcript}
+    loop every 15 s until the call ends
+        N->>API: poll attempt status
+    end
+    API-->>N: outcome and transcript
     N->>API: record call on the case + timeline
     N->>CG: Remember (call summary, unique prefix)
     N->>CG: Cognify
     K->>FE: Ask this case: what did the merchant say?
 ```
 
-The placeholder step and the call-completed callback are the only parts waiting on phone setup. Everything after "call
-completed" is verified (with rehearsal calls: the live agent talking to a scripted merchant).
+The result is polled, so no public address is needed. The agent and everything after the call ends are verified (rehearsal
+calls: the live agent with a scripted merchant); the first real phone call is still to be made.
 
 ---
 
@@ -356,7 +361,7 @@ n8n reaches the backend at `host.docker.internal:8765`. Secrets live only in `ba
 
 ```mermaid
 flowchart LR
-    NOW[Built and verified] --> S1[Telephony: replace one n8n node<br/>+ Sarvam call-completed callback]
+    NOW[Built and verified] --> S1[First real phone call, then Sarvam call-completed webhook<br/>if n8n is exposed publicly]
     NOW --> S2[Real MCA21 / GSTN / bank penny-drop<br/>replaces app/registry/mock_registry.py]
     NOW --> S3[CKYCR lookup: one more check + registry adapter]
     NOW --> S4[Auto-chase on ASK route: n8n branch already marked]

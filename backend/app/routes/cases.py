@@ -17,7 +17,7 @@ from app import config, pipeline
 from app import crm_form as crm_builder
 from app.checks import cross_check
 from app.registry import mock_registry
-from app import voice_agent
+from app import telephony, voice_agent
 from app.db import audit, engine, get_session
 from app.doctypes import DOC_TYPES, guess_doc_type
 from app.models import AuditEvent, Case, CrmOverride, Document, VoiceCall, utcnow
@@ -200,7 +200,11 @@ def _authorise_action(case: Case, body: ActionRequest) -> None:
 def _do_action(case_id: str, body: ActionRequest, session: Session):
     case = get_case(session, case_id)
     _authorise_action(case, body)
+    to_number = _voice_target(session, case, body) if body.action == "voice" and (body.channel or "voice") == "voice" else None
     _, title, detail, status, stage, tone = ACTIONS[body.action]
+    if to_number:
+        detail += f" Calling {telephony.mask(to_number)}."
+        case.contact_phone = to_number
     if body.channel:
         detail += f" Channel: {body.channel}."
     if body.note:
@@ -211,20 +215,40 @@ def _do_action(case_id: str, body: ActionRequest, session: Session):
     session.add(case)
     session.commit()
     audit(session, case_id, body.actor, title, detail, tone)
-    if body.action == "voice" and (body.channel or "voice") == "voice":
-        _hand_off_voice_chase(session, case)
+    if to_number:
+        _hand_off_voice_chase(session, case, to_number)
     session.refresh(case)
     return Envelope(data=case_detail(session, case))
 
 
-def _hand_off_voice_chase(session: Session, case: Case) -> None:
+CALL_IN_PROGRESS_SECONDS = 300
+
+
+def _voice_target(session: Session, case: Case, body: ActionRequest) -> str:
+    """The validated number to call, or an HTTP error before anything on the case changes."""
+    raw = body.phone or case.contact_phone
+    if not raw:
+        raise HTTPException(422, "Enter the phone number to call for this voice chase.")
+    try:
+        number = telephony.normalise_number(raw)
+    except telephony.TelephonyError as e:
+        raise HTTPException(422, str(e)) from e
+    since = utcnow() - timedelta(seconds=CALL_IN_PROGRESS_SECONDS)
+    placed = session.exec(select(AuditEvent).where(AuditEvent.case_id == case.id, AuditEvent.action == "Voice call placed",
+                                                   AuditEvent.ts >= since).order_by(AuditEvent.ts.desc())).first()
+    if placed and not session.exec(select(VoiceCall).where(VoiceCall.case_id == case.id, VoiceCall.created_at >= placed.ts)).first():
+        raise HTTPException(409, "A voice call for this case is still in progress. Wait for it to finish before calling again.")
+    return number
+
+
+def _hand_off_voice_chase(session: Session, case: Case, to_number: str) -> None:
     """Trigger the n8n voice workflow. Never raises: the KAM's action is already recorded."""
     if not config.N8N_VOICE_WEBHOOK_URL:
         audit(session, case.id, "agent", "Voice call not placed",
               "Voice agent context is ready, but phone calling is not configured yet (N8N_VOICE_WEBHOOK_URL is empty).", "neutral")
         return
     try:
-        r = httpx.post(config.N8N_VOICE_WEBHOOK_URL, json={"case_id": case.id}, timeout=5)
+        r = httpx.post(config.N8N_VOICE_WEBHOOK_URL, json={"case_id": case.id, "to_number": to_number}, timeout=5)
         r.raise_for_status()
         audit(session, case.id, "agent", "Voice chase handed to n8n", "n8n will place the call and report the outcome.", "ai")
     except httpx.HTTPError as e:
@@ -371,3 +395,46 @@ def voice_call_memory_result(call_id: str, body: VoiceMemoryResult, session: Ses
     if call is None:
         raise HTTPException(404, "Voice call not found")
     return {"ok": True, "data": voice_agent.record_memory(session, call, body.status == "stored", body.error)}
+
+
+# ---------- placing and following the call (called by n8n) ----------
+class PlaceCall(BaseModel):
+    to_number: str = Field(max_length=40)
+
+
+@router.post("/cases/{case_id}/voice-chase/call")
+def voice_chase_place_call(case_id: str, body: PlaceCall, session: Session = Depends(get_session)):
+    """Place the outbound call with the live agent context. A call that cannot be placed answers 200 with ok=false and a readable
+    reason, so n8n can branch on it and write the reason to the timeline."""
+    case = get_case(session, case_id)
+    ctx = voice_agent.context(session, case)
+    if not ctx["should_call"]:
+        return {"ok": False, "error": "Nothing on this case needs the merchant, so there is nothing to call about."}
+    try:
+        number = telephony.normalise_number(body.to_number)
+        placed = telephony.place_call(number, ctx["agent_variables"], ctx["initial_bot_message"], ctx["initial_language_name"], case_id)
+    except telephony.TelephonyError as e:
+        return {"ok": False, "error": str(e)}
+    audit(session, case_id, "agent", "Voice call placed",
+          f"Calling {telephony.mask(number)} from {config.SARVAM_AGENT_PHONE_NUMBER}. Attempt {placed['attempt_id']}.", "ai")
+    return {"ok": True, "data": {**placed, "to": telephony.mask(number)}}
+
+
+@router.get("/cases/{case_id}/voice-chase/attempts/{attempt_id}")
+def voice_chase_attempt(case_id: str, attempt_id: str, session: Session = Depends(get_session)):
+    """Poll one call. Returns {state: pending|done, ...} and, when done and connected, the transcript."""
+    get_case(session, case_id)
+    try:
+        status = telephony.attempt_status(attempt_id)
+    except telephony.TelephonyError as e:
+        raise HTTPException(502, str(e)) from e
+    if status["state"] == "done" and status["outcome"] == "reached" and status.get("interaction_id"):
+        status["transcript"] = telephony.transcript(status["interaction_id"])
+    elif status["state"] == "done":
+        status["transcript"] = []
+    seconds = status.get("duration")
+    if status["state"] == "done":
+        parts = {"reached": "The merchant picked up", "no_answer": "No answer", "busy": "The line was busy", "failed": "The call failed"}[status["outcome"]]
+        status["summary"] = parts + (f" ({round(seconds)} s)." if seconds and status["outcome"] == "reached" else ".") +             (f" Reason: {status['failure_reason']}." if status.get("failure_reason") else "")
+        status["call_id"] = status.get("interaction_id") or attempt_id
+    return {"ok": True, "data": status}
