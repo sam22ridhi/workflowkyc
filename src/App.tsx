@@ -1,32 +1,45 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import {
-  ArrowRight,
-  ArrowUpRight,
-  Check,
-  CloudUpload,
-  FileText,
-  Play,
-  ShieldCheck,
-  Sparkles,
-  Zap,
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { CaseDetailScreen } from '@/components/kam/CaseDetailScreen';
 import { KamQueueScreen } from '@/components/kam/KamQueueScreen';
 import { MerchantAuthScreen } from '@/components/merchant/MerchantAuthScreen';
+import { CpvCapturePage } from '@/components/merchant/CpvCapturePage';
 import { MerchantUploadScreen } from '@/components/merchant/MerchantUploadScreen';
 import { Landing } from '@/components/home/Landing';
 import { DEMO_MERCHANT_CASE, sendCaseAction, uploadDocuments } from '@/services/api';
-import { useLiveCase } from '@/services/useLiveCase';
+import { useLiveCase, useLiveCases } from '@/services/useLiveCase';
+import type { Persona } from '@/components/kam/KamWorkspaceShell';
 
-type Route = 'landing' | 'login' | 'merchant-stage1' | 'merchant-account' | 'merchant-upload' | 'merchant-action' | 'kam' | 'case';
+type Route = 'landing' | 'login' | 'merchant-stage1' | 'merchant-account' | 'merchant-upload' | 'merchant-action' | 'kam' | 'case' | 'cpv';
 type MerchantView = 'stage1' | 'account' | 'upload' | 'action';
-type CaseAction = 'request' | 'voice' | 'approve' | 'send_back' | 'compliance_approve';
+type CaseAction = 'request' | 'voice' | 'approve' | 'send_back' | 'compliance_approve' | 'cpv_approve' | 'cpv_retake' | 'vcip_call' | 'vcip_signoff';
+const COMPLIANCE_ACTIONS = new Set<CaseAction>(['send_back', 'compliance_approve', 'vcip_call', 'vcip_signoff']);
+
+const store = {
+  get(key: string): string | null {
+    try { return window.localStorage.getItem(key); } catch { return null; }
+  },
+  set(key: string, value: string) {
+    try { window.localStorage.setItem(key, value); } catch { /* the choice just is not remembered */ }
+  },
+};
 
 function App() {
   const [route, setRoute] = useState<Route>(() => routeFromPath(window.location.pathname));
   const [kamCaseId, setKamCaseId] = useState<string>(() => caseIdFromPath(window.location.pathname) ?? DEMO_MERCHANT_CASE);
-  // The signed-in merchant is the Sharma Foods demo case; the KAM can open any case from the queue.
-  const merchant = useLiveCase(DEMO_MERCHANT_CASE);
+
+  // The merchant portal opens the Sharma Foods demo case by default; "View as merchant" (or the picker in the portal header)
+  // opens any case, so the whole lifecycle, including the shop-verification link, can be tested from the merchant side.
+  const [merchantCaseId, setMerchantCaseId] = useState<string>(
+    () => new URLSearchParams(window.location.search).get('case') ?? store.get('kk.merchantCase') ?? DEMO_MERCHANT_CASE,
+  );
+
+  const [persona, setPersonaState] = useState<Persona>(() => (store.get('kk.persona') === 'Compliance' ? 'Compliance' : 'KAM'));
+
+  const setPersona = (p: Persona) => { setPersonaState(p); store.set('kk.persona', p); };
+  const chooseMerchantCase = (id: string) => { setMerchantCaseId(id); store.set('kk.merchantCase', id); };
+
+  const merchant = useLiveCase(merchantCaseId);
+  const allCases = useLiveCases();
   const kam = useLiveCase(kamCaseId);
 
   useEffect(() => {
@@ -49,6 +62,7 @@ function App() {
       'merchant-upload': '/dashboard/upload',
       'merchant-action': '/dashboard/action-required',
       kam: '/kam',
+      cpv: window.location.pathname,
       case: `/kam/cases/${id}`,
     };
     if (caseId) setKamCaseId(caseId);
@@ -58,13 +72,18 @@ function App() {
 
   // Merchant uploads real files; the backend stores, hashes and starts the pipeline (202).
   const handleUploadFiles = async (files: File[], slot: string | null) => {
-    const report = await uploadDocuments(DEMO_MERCHANT_CASE, files, slot);
+    const report = await uploadDocuments(merchantCaseId, files, slot);
     void merchant.reload();
     return report;
   };
 
+  const openAsMerchant = (id: string) => {
+    chooseMerchantCase(id);
+    navigate('merchant-action');
+  };
+
   const handleCaseAction = async (action: CaseAction, channel?: string, phone?: string) => {
-    await sendCaseAction(kamCaseId, action, { channel, phone, actor: action === 'send_back' || action === 'compliance_approve' ? 'compliance' : 'kam' });
+    await sendCaseAction(kamCaseId, action, { channel, phone, actor: COMPLIANCE_ACTIONS.has(action) ? 'compliance' : 'kam' });
     void kam.reload();
   };
 
@@ -76,12 +95,15 @@ function App() {
   ) : null;
   const loading = <div className="min-h-screen flex items-center justify-center text-sm text-slate-500">Loading case…</div>;
 
+  if (route === 'cpv') return <CpvCapturePage token={decodeURIComponent(window.location.pathname.split('/')[2] ?? '')} />;
+
   if (route === 'login') return <MerchantAuthScreen onBack={() => navigate('landing')} onSuccess={() => navigate('merchant-stage1')} />;
+
   if (route === 'merchant-stage1' || route === 'merchant-account' || route === 'merchant-upload' || route === 'merchant-action') {
     const currentMerchantView: MerchantView =
       route === 'merchant-stage1' ? 'stage1' :
-      route === 'merchant-account' ? 'account' :
-      route === 'merchant-upload' ? 'upload' : 'action';
+        route === 'merchant-account' ? 'account' :
+          route === 'merchant-upload' ? 'upload' : 'action';
     if (!merchant.caseData) return loading;
     return (
       <>
@@ -90,11 +112,13 @@ function App() {
           caseData={merchant.caseData}
           onUploadFiles={handleUploadFiles}
           onOpenKAM={() => navigate('kam')}
+          cases={(allCases.list?.items ?? []).map((c) => ({ id: c.id, name: c.merchantName, stage: c.stageName ?? '' }))}
+          onChooseCase={chooseMerchantCase}
           onNavigate={(view: MerchantView) => {
             const targetRoute: Route =
               view === 'stage1' ? 'merchant-stage1' :
-              view === 'account' ? 'merchant-account' :
-              view === 'upload' ? 'merchant-upload' : 'merchant-action';
+                view === 'account' ? 'merchant-account' :
+                  view === 'upload' ? 'merchant-upload' : 'merchant-action';
             navigate(targetRoute);
           }}
         />
@@ -102,23 +126,26 @@ function App() {
       </>
     );
   }
+
   if (route === 'kam') {
     return (
       <>
-        <KamQueueScreen onOpenCase={(id) => navigate('case', id)} onSwitchRole={() => navigate('merchant-stage1')} />
+        <KamQueueScreen onOpenCase={(id) => navigate('case', id)} onOpenAsMerchant={openAsMerchant} onSwitchRole={() => navigate('merchant-stage1')} persona={persona} onSwitchPersona={setPersona} />
         {banner}
       </>
     );
   }
+
   if (route === 'case') {
     if (!kam.caseData) return loading;
     return (
       <>
-        <CaseDetailScreen caseData={kam.caseData} onBack={() => navigate('kam')} onSwitchRole={() => navigate('merchant-stage1')} onAction={handleCaseAction} />
+        <CaseDetailScreen caseData={kam.caseData} onBack={() => navigate('kam')} onSwitchRole={() => navigate('merchant-stage1')} onOpenAsMerchant={openAsMerchant} persona={persona} onSwitchPersona={setPersona} onAction={handleCaseAction} />
         {banner}
       </>
     );
   }
+
   return <Landing onAuth={() => navigate('login')} onMerchant={() => navigate('login')} onKAM={() => navigate('kam')} />;
 }
 
@@ -128,6 +155,7 @@ function caseIdFromPath(path: string): string | null {
 }
 
 function routeFromPath(path: string): Route {
+  if (path.startsWith('/cpv/')) return 'cpv';
   if (path.startsWith('/kam/cases/')) return 'case';
   if (path.startsWith('/kam')) return 'kam';
   if (path.startsWith('/dashboard/stage-1')) return 'merchant-stage1';
