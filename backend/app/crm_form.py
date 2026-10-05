@@ -7,7 +7,7 @@ from app.models import Case, CrmOverride, Document
 
 SHORT = {"pan": "Company PAN", "gst": "GST Cert", "coi": "COI", "board_resolution": "Board Resolution",
          "bank_cheque": "Cancelled Cheque", "director_kyc": "Director KYC", "shareholding": "Shareholding Decl.",
-         "fssai": "FSSAI Licence"}
+         "fssai": "FSSAI Licence", "electricity_bill": "Electricity Bill"}
 
 # (key, label, kind, [(doc_type, field)], case attribute holding the merchant-application value)
 # kind "name": compared with name_match (Pvt/Private equal; a dropped "Private Limited" is a conflict).

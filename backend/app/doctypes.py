@@ -10,6 +10,7 @@ DOC_TYPES: dict[str, str] = {
     "director_kyc": "Director KYC",
     "shareholding": "Shareholding / Beneficial Owner Declaration",
     "fssai": "FSSAI Licence",
+    "electricity_bill": "Electricity Bill (address proof)",
     "unknown": "Unclassified document",
 }
 
@@ -32,6 +33,7 @@ FILENAME_HINTS: list[tuple[str, str]] = [
     (r"kyc|aadhaar|aadhar|passport|voter|driving|director", "director_kyc"),
     (r"shareholding|share[_ -]?holder|beneficial|ubo|mgt", "shareholding"),
     (r"fssai|food[_ -]?licen", "fssai"),
+    (r"electricity|electric[_ -]?bill|power[_ -]?bill|discom|msedcl|bses|bescom|tneb", "electricity_bill"),
 ]
 
 # Required documents per entity type (cross-check #9) and per industry (#10).

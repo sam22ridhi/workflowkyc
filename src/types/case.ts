@@ -60,4 +60,8 @@ export interface MerchantCase {
   uploaded?: import('@/services/api').ChecklistEntry[];
   missing?: import('@/services/api').ChecklistEntry[];
   voiceCalls?: import('@/services/api').VoiceCallRecord[];
+  kind?: 'merchant' | 'investigation';
+  parentCaseId?: string | null;
+  cpv?: import('@/services/api').CpvView | null;
+  vcip?: import('@/services/api').VcipView | null;
 }

@@ -153,6 +153,11 @@ class CaseRow(BaseModel):                  # one row of the KAM pipeline table
     isUrgent: bool
     docProgress: dict[str, int]            # {uploaded, required, processed}
     lastUpdated: str
+    kind: str = "merchant"                 # merchant | investigation
+    parentCaseId: str | None = None
+    stageName: str = ""                    # lifecycle label, e.g. 'Contact Point Verification'
+    cpvStatus: str | None = None           # waiting | captured | verified | needs_review ...
+    vcipStatus: str | None = None          # queued | interviewed | signed_off
 
 
 class Kpis(BaseModel):
@@ -162,6 +167,9 @@ class Kpis(BaseModel):
     awaitingMerchant: int
     readyForSubmission: int
     escalations: int
+    awaitingChecker: int = 0               # stage 5: the KAM has submitted, Compliance decides
+    cpvInProgress: int = 0                 # stage 6: Drishti / KAM
+    vcipQueue: int = 0                     # stage 7: waiting for the authorised official
 
 
 class CaseList(BaseModel):
@@ -191,6 +199,8 @@ class CaseDetail(BaseModel):
     registeredAddress: str | None
     contactName: str | None = None
     contactPhone: str | None = None
+    kind: str = "merchant"
+    parentCaseId: str | None = None
     status: Literal["needs_attention", "awaiting_merchant", "ready_for_review"]
     accountStatus: str
     stage: int
@@ -208,10 +218,13 @@ class CaseDetail(BaseModel):
     checks: list[CheckOut]
     timeline: list[TimelineItem]
     voiceCalls: list[VoiceCallOut] = Field(default_factory=list)
+    cpv: dict | None = None
+    vcip: dict | None = None
 
 
 class ActionRequest(BaseModel):
-    action: Literal["request", "voice", "approve", "submit_to_compliance", "send_back", "compliance_approve"]
+    action: Literal["request", "voice", "approve", "submit_to_compliance", "send_back", "compliance_approve",
+                    "cpv_approve", "cpv_retake", "vcip_call", "vcip_signoff", "inv_resolve", "inv_dismiss"]
     channel: Literal["voice", "whatsapp", "email"] | None = None
     note: str | None = Field(default=None, max_length=500)
     phone: str | None = Field(default=None, max_length=40, description="number to call for a voice chase")

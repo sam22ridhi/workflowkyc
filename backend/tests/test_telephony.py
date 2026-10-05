@@ -106,6 +106,36 @@ def test_outcome_mapping(item, outcome):
     assert telephony._outcome(item) == outcome
 
 
+def test_a_call_twilio_refused_is_finished_at_once_with_a_plain_reason(phone_config, monkeypatch):
+    # the real record Sarvam holds for a trial-account refusal: no end time, status failed, placeholders for the ids
+    real = {"attempt_id": "att-1", "interaction_id": "NO_INTERACTION_ID", "connectivity_status": "failed", "end_datetime": None,
+            "start_datetime": None, "duration_in_seconds": 0.0, "num_messages": 0, "channel_direction": "outbound",
+            "failure_reason": 'twilio: {"code":21219,"message":"The number +918828000465 is unverified. Trial accounts may only make calls to verified numbers.",'
+                              '"more_info":"https://www.twilio.com/docs/errors/21219","status":400}'}
+    monkeypatch.setattr(httpx, "get", lambda *a, **k: resp(200, {"items": [real]}))
+    done = telephony.attempt_status("att-1")
+    assert done["state"] == "done" and done["outcome"] == "failed" and done["interaction_id"] is None
+    assert "Twilio refused the call (error 21219)" in done["failure_reason"] and "Verified Caller IDs" in done["failure_reason"]
+    assert "+918828000465 is unverified" in done["failure_reason"]
+
+
+def test_failed_with_no_reason_and_no_conversation_explains_the_trial_announcement(phone_config, monkeypatch):
+    # the real record of a call that rang and was answered but never reached the agent (attempt f25960e0)
+    real = {"attempt_id": "att-2", "interaction_id": "NO_INTERACTION_ID", "connectivity_status": "failed", "failure_reason": "NO_FAILURE_REASON",
+            "end_datetime": None, "duration_in_seconds": 0.0, "num_messages": 0, "channel_direction": "outbound"}
+    monkeypatch.setattr(httpx, "get", lambda *a, **k: resp(200, {"items": [real]}))
+    done = telephony.attempt_status("att-2")
+    assert done["state"] == "done" and done["outcome"] == "failed" and done["interaction_id"] is None
+    assert "agent never joined" in done["failure_reason"] and "trial-account announcement" in done["failure_reason"] and "Press any key" in done["failure_reason"]
+
+
+def test_failure_explanations():
+    assert telephony.explain_failure(None) is None and telephony.explain_failure("provider down") == "provider down"
+    geo = telephony.explain_failure('twilio: {"code":21215,"message":"Account not authorized to call +91"}')
+    assert "Geo Permissions" in geo
+    assert telephony.explain_failure('twilio: {"code":99999,"message":"odd"}') == "Twilio refused the call (error 99999): odd"
+
+
 def test_transcript_parsing_tolerates_shapes(phone_config, monkeypatch):
     bodies = (
         {"interaction_transcript": [{"role": "agent", "en_text": "Hello"}, {"role": "user", "en_text": "Yes tell me"}]},

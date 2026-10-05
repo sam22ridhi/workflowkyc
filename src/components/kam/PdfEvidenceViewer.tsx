@@ -233,12 +233,12 @@ export function PdfEvidenceViewer({ caseId, focus }: PdfEvidenceViewerProps) {
                       style={{ left: `${o.box.x * 100}%`, top: `${o.box.y * 100}%`, width: `${o.box.w * 100}%`, height: `${o.box.h * 100}%` }}
                       className={`absolute rounded cursor-pointer transition-all flex items-start justify-between px-1 ${
                         isSelected
-                          ? tone === 'purple' ? 'border-2 border-purple-600 bg-purple-500/25 ring-2 ring-purple-300 z-20' : 'border-2 border-amber-500 bg-amber-400/30 ring-2 ring-amber-300 z-20'
-                          : tone === 'purple' ? 'border border-dashed border-purple-500 bg-purple-500/10 hover:bg-purple-500/20 z-10' : 'border border-dashed border-amber-500 bg-amber-400/15 hover:bg-amber-400/25 z-10'
+                          ? tone === 'purple' ? 'border-2 border-[#00BAF2] bg-[#00BAF2]/25 ring-2 ring-[#00BAF2] z-20' : 'border-2 border-amber-500 bg-amber-400/30 ring-2 ring-amber-300 z-20'
+                          : tone === 'purple' ? 'border border-dashed border-[#00BAF2] bg-[#00BAF2]/10 hover:bg-[#00BAF2]/20 z-10' : 'border border-dashed border-amber-500 bg-amber-400/15 hover:bg-amber-400/25 z-10'
                       }`}
                     >
                       {isSelected && o.confidence !== null && (
-                        <span className={`-mt-3 text-[8px] font-black uppercase tracking-wider px-1 rounded shadow-2xs ${tone === 'purple' ? 'bg-purple-700 text-white' : 'bg-amber-600 text-white'}`}>
+                        <span className={`-mt-3 text-[8px] font-black uppercase tracking-wider px-1 rounded shadow-2xs ${tone === 'purple' ? 'bg-[#002970] text-white' : 'bg-amber-600 text-white'}`}>
                           AI: {Math.round(o.confidence)}%
                         </span>
                       )}
@@ -250,7 +250,7 @@ export function PdfEvidenceViewer({ caseId, focus }: PdfEvidenceViewerProps) {
           )}
           {activeDoc && (
             <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500 max-w-[640px] mx-auto">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-purple-500/40 border border-purple-600" /> Extracted field</span>
+              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-[#00BAF2]/40 border border-[#00BAF2]" /> Extracted field</span>
               <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-amber-400/40 border border-amber-500" /> Conflict with another source</span>
             </div>
           )}
@@ -277,14 +277,14 @@ export function PdfEvidenceViewer({ caseId, focus }: PdfEvidenceViewerProps) {
             )}
 
             {selected && (
-              <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-200 mb-6 shadow-2xs">
+              <div className="p-4 rounded-xl bg-[#e6f7fc]/60 border border-[#cfe9fc] mb-6 shadow-2xs">
                 <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="font-extrabold text-purple-900 uppercase tracking-wide text-[10px]">Focused Document Region</span>
-                  {selected[1].confidence !== null && <span className="px-2 py-0.5 rounded-full bg-purple-600 text-white font-extrabold text-[10px]">{Math.round(selected[1].confidence)}% Confidence</span>}
+                  <span className="font-extrabold text-[#002970] uppercase tracking-wide text-[10px]">Focused Document Region</span>
+                  {selected[1].confidence !== null && <span className="px-2 py-0.5 rounded-full bg-[#0a5fb8] text-white font-extrabold text-[10px]">{Math.round(selected[1].confidence)}% Confidence</span>}
                 </div>
                 <strong className="block text-sm font-bold text-slate-900 mb-1">{prettify(selected[0])}</strong>
-                <div className="p-2.5 bg-white rounded-lg border border-purple-200 font-mono text-xs font-semibold text-slate-800 break-words mb-2">&ldquo;{displayValue(selected[1].value)}&rdquo;</div>
-                <p className="text-[11px] text-purple-900/80 leading-snug">
+                <div className="p-2.5 bg-white rounded-lg border border-[#cfe9fc] font-mono text-xs font-semibold text-slate-800 break-words mb-2">&ldquo;{displayValue(selected[1].value)}&rdquo;</div>
+                <p className="text-[11px] text-[#002970]/80 leading-snug">
                   Extracted from <strong>{activeDoc?.doc_type_label}</strong>{selected[1].page ? <> · page {selected[1].page}</> : null}
                   {selected[1].box || selected[1].boxes?.length
                     ? selected[1].box_precision === 'table' ? ' · highlighted at table level (Sarvam does not localise individual rows).' : ' with bounding coordinates.'
@@ -304,7 +304,7 @@ export function PdfEvidenceViewer({ caseId, focus }: PdfEvidenceViewerProps) {
                     key={key}
                     onClick={() => select(key)}
                     className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                      isSelected ? 'border-purple-500 bg-purple-50/40 ring-1 ring-purple-400' : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50'
+                      isSelected ? 'border-[#00BAF2] bg-[#e6f7fc]/40 ring-1 ring-[#00BAF2]' : 'border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50'
                     }`}
                   >
                     <div className="min-w-0 flex-1">

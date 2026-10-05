@@ -115,6 +115,38 @@ class CogneeCloudStore:
         text = "\n".join(parts).replace(" ", " ").strip()
         return SearchResult(answer=text, data_ids=list(dict.fromkeys(UUID_RE.findall(text))), raw=body)
 
+    def _dataset_id(self, dataset: str) -> str | None:
+        if dataset in self._dataset_ids:
+            return self._dataset_ids[dataset]
+        for d in self._request("GET", "/api/v1/datasets").json():
+            if d.get("name") == dataset and d.get("id"):
+                self._dataset_ids[dataset] = d["id"]
+                return d["id"]
+        return None
+
+    def delete_data(self, dataset: str, data_ids: list[str]) -> int:
+        """Remove stored items from the dataset (a 404 means it is already gone). Returns how many were removed."""
+        ds = self._dataset_id(dataset)
+        if ds is None:
+            return 0
+        n = 0
+        for did in data_ids:
+            try:
+                self._request("DELETE", f"/api/v1/datasets/{ds}/data/{did}")
+                n += 1
+            except MemoryUnavailable as e:
+                if " 404" not in str(e):
+                    raise
+        return n
+
+    def delete_dataset(self, dataset: str) -> bool:
+        ds = self._dataset_id(dataset)
+        if ds is None:
+            return False
+        self._request("DELETE", f"/api/v1/datasets/{ds}")
+        self._dataset_ids.pop(dataset, None)
+        return True
+
     def health(self) -> dict:
         try:
             with self._client() as c:

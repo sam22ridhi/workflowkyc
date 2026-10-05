@@ -4,7 +4,6 @@ import {
   ChevronDown, 
   Layers, 
   AlertTriangle, 
-  Settings, 
   LogOut, 
   ArrowLeftRight,
   ShieldCheck,
@@ -13,6 +12,8 @@ import {
   Search,
   Bell
 } from 'lucide-react';
+import { useLiveCases } from '@/services/useLiveCase';
+import { AppLogo } from '@/components/shared/AppLogo';
 
 export type KamSidebarTab = 'dashboard' | 'cases' | 'risk' | 'settings';
 export type Persona = 'KAM' | 'Compliance';
@@ -36,25 +37,16 @@ export function KamWorkspaceShell({
   onSwitchPersona,
   onSwitchToMerchant,
 }: KamWorkspaceShellProps) {
+  const { list } = useLiveCases();
+  const total = list?.items.length;
+  const risk = list?.items.filter((c) => c.isUrgent).length;
   return (
     <div className="h-screen bg-slate-50 flex flex-col font-sans text-slate-900 overflow-hidden">
       {/* Top Bar */}
       <header className="flex-none flex items-center justify-between px-6 py-3 bg-white border-b border-slate-200/80 z-20 shadow-2xs">
         <div className="flex items-center gap-6">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#002970] text-[#00BAF2] flex items-center justify-center font-black text-base shadow-sm ring-2 ring-[#00BAF2]/30">
-              K
-            </div>
-            <div className="flex flex-col items-start leading-tight">
-              <strong className="text-[14px] font-extrabold tracking-widest text-[#002970]">
-                KARYAKARTA<span className="text-[#00BAF2] font-black ml-0.5">·AI</span>
-              </strong>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Paytm Corporate Gateway
-              </span>
-            </div>
-          </div>
+          <AppLogo subtitle="Paytm Corporate Gateway" />
 
           <div className="h-5 w-px bg-slate-200 hidden md:block" />
 
@@ -147,21 +139,15 @@ export function KamWorkspaceShell({
               onClick={() => onSelectTab('cases')}
               icon={<Layers size={18} />}
               label="All Cases"
-              badge="42"
+              badge={total === undefined ? undefined : String(total)}
             />
             <SidebarNavBtn
               active={activeTab === 'risk'}
               onClick={() => onSelectTab('risk')}
               icon={<AlertTriangle size={18} />}
               label="Risk Alerts"
-              badge="3"
+              badge={risk ? String(risk) : undefined}
               badgeTone="critical"
-            />
-            <SidebarNavBtn
-              active={activeTab === 'settings'}
-              onClick={() => onSelectTab('settings')}
-              icon={<Settings size={18} />}
-              label="Settings"
             />
           </nav>
 

@@ -12,7 +12,7 @@ Aggregator Directions are dated 15 Sep 2025 with existing merchants due by 15 Se
 built what in section J.
 
 Contents: A Problem · B Product · C Track 3 and agents · D Technology choices · E Accuracy, safety, trust · F Voice ·
-G The demo · H Business and scale · I Hard questions · J Team · K Numbers to remember
+G The demo · H Business and scale · I Hard questions · L Drishti (CPV and V-CIP) · M Settlement Agent · J Team · K Numbers to remember
 
 ---
 
@@ -102,8 +102,8 @@ Because nobody asks it anything. When eight documents are uploaded it reads them
 CRM form, builds the graph, drafts the merchant call and routes the case, all unprompted. "Ask this case" is one feature of ten.
 
 **C2. Who are the AI teammates?**
-Five: the Orchestrator (n8n), the Reader (Sarvam Document Intelligence), the Verifier (deterministic rules), the Digital Twin analyst
-(Cognee) and the Voice Chaser (Sarvam voice agent). Two humans decide: the KAM and Compliance.
+Seven: the Orchestrator (n8n, nicknamed Sutradhar), the Reader (Sarvam Document Intelligence), the Verifier (deterministic rules), the Digital Twin analyst (Cognee), the Voice Chaser
+(Sarvam voice agent) Drishti (shop verification and V-CIP preparation) and the Settlement Agent (post-onboarding monitoring). Two humans decide: the KAM and Compliance.
 
 **C3. How autonomous is it really?**
 Reading, checking, routing, memory and drafting are fully autonomous. The voice chase runs on its own once triggered; today the KAM
@@ -132,7 +132,7 @@ human-only (A0); and we deliberately use no level where the AI decides (A4).
 
 **D1. Why n8n?**
 It is the orchestrator and it is visible: ops can open the workflow and see each step. It runs extraction, memory, cross-checks and
-the voice chase as two workflows (43 nodes) with native Cognee nodes, and every step can fail without stopping the batch. It is one of the
+the voice chase and the shop verification as four workflows (75 nodes) with native Cognee nodes, and every step can fail without stopping the batch. It is one of the
 hackathon's partner tools and it earns its place: remove it and the backend falls back to an in-process pipeline, but you lose the
 visible, editable workflow.
 
@@ -157,7 +157,7 @@ Determinism and evidence. PAN type, GSTIN-contains-PAN, effective ownership and 
 so results are repeatable and auditable.
 
 **D7. Why FastAPI and SQLite?**
-FastAPI for typed, documented endpoints (35) and server-sent events; SQLite (WAL mode) as the single system of record so Cognee can fail
+FastAPI for typed, documented endpoints (57) and server-sent events; SQLite (WAL mode) as the single system of record so Cognee can fail
 without losing a case. It is a prototype choice: production would use Postgres.
 
 **D8. What if Cognee is down?**
@@ -354,6 +354,76 @@ Entity rules exist for private and public limited, LLP, partnership and propriet
 
 ---
 
+## L. Drishti: contact point verification and V-CIP
+
+**L1. What does Drishti do?**
+It verifies that the merchant's shop exists and is where the application says, from two live photos taken on the merchant's phone, so no field agent has to visit. It reads the signboard,
+compares it with the GST trade name, measures the distance to the declared address, checks the capture looks live, and issues `CPV_VERIFIED` on its own only when every hard check passes.
+
+**L2. What did CPV cost before?**
+Per the hackathon brief: a field agent with an Android app, 3 to 5 days and ₹250 to ₹500 per visit. Those are the brief's figures for the manual process; we have not measured them.
+
+**L3. How does the merchant get the link?**
+It appears in their AI Communication Center with a QR code (and on the KAM's case page). We chose that over a WhatsApp message. It is one-time, expires in 24 hours and is replaced if the KAM asks for new photos.
+
+**L4. How do you stop someone uploading an old photo or one from the gallery?**
+The capture page has no file picker; photos are frames from the live camera. The server then checks the photo's time against its own clock (within 120 seconds), GPS accuracy, that no camera EXIF block is present, that
+both photos were taken at the same place, and the distance to the address. A web page cannot truly prove liveness, so a determined attacker could get past this; doubtful cases go to a person.
+
+**L5. What vision model do you use?**
+No multimodal model. Sarvam reads the text on the signboard and the counter (and transliterates a Hindi sign), and local code does the geography and the image checks. The screen-replay and category checks
+are heuristics and are labelled assistive.
+
+**L6. Does it work with a Hindi signboard?**
+Yes. Sarvam read a Hindi sign ("शर्मा फूडस", one conjunct mark dropped) and its transliteration turned it into "Sharma Foods", which matched the English GST trade name. This was tested with synthetic images.
+
+**L7. How accurate is the 100 m check?**
+It depends on the phone's GPS and on how well the address geocodes. We require GPS accuracy of 100 m or better, geocode the declared address with OpenStreetMap, and refuse to treat an area-level match as reliable.
+We did not test OpenStreetMap on real Indian street addresses, so the demo uses a labelled reference point.
+
+**L8. What does it do when it is not sure?**
+It never fails a shop on its own. The case becomes `NEEDS_REVIEW` with all the evidence, and the KAM approves after review or asks for new photos. A live run with a sign that did not match went to review.
+
+**L9. How good is the screen-replay detection?**
+It is a frequency-spectrum heuristic calibrated on synthetic images only. It flagged an honest storefront at first (straight edges look like a pattern), which we fixed, and it can miss a perfectly aligned screen grid.
+We present it as a prompt for a person to look, not as fraud detection.
+
+**L10. Can the agent approve a shop?**
+Drishti issues `CPV_VERIFIED` itself when four hard checks pass, as the brief describes, and nothing else it does is an approval. A flagged case can only be approved by the KAM; the agent and the merchant are refused (HTTP 403).
+
+**L11. What is V-CIP and what do you automate?**
+V-CIP is the video-based customer identification RBI requires an authorised official to conduct and sign off. We do not replace that person. A Sarvam voice agent runs a short Hindi pre-interview with three randomized
+liveness questions (always a random number to repeat), and the official sees the questions with expected answers, the transcript, the selfie and the ID side by side and signs off in one click.
+
+**L12. Do you match the face against the PAN photo?**
+No. No face-recognition model is integrated, and the sign-off card says so. The official compares the faces.
+
+**L13. Have you tried it on a real phone?**
+Not yet. The capture page was tested with fake browser APIs, and the analysis was run live with real Sarvam on synthetic photos. A phone's camera and GPS need an https address, so a real-phone test needs a tunnel.
+
+**L14. Is the V-CIP agent working?**
+The questions, the call flow, the transcript recording and the sign-off are built and tested. The agent itself is a second Sarvam agent that has to be created in the console, and it has not been tested.
+
+---
+
+## M. The Settlement Agent (post-onboarding)
+
+**M1. What does it do?** After go-live it compares each 48 hours of a merchant's settlements with the trailing 30-day baseline. If volume exceeds 150% of baseline, or expected and actual settlement are more than 10% apart, it reconciles the gap, pulls the merchant's declared profile from the Cognee twin, attaches the payments behind it, opens an investigation case and escalates it to the KAM queue.
+
+**M2. Is it a separate product or dashboard?** No. It reuses Case Detail (a Settlements tab), the Needs Attention queue, the Exception Cards and the Timeline.
+
+**M3. Does it freeze money?** No. It recommends (for example "hold the next settlement"); a person decides. The server refuses resolve and dismiss from the agent or Compliance.
+
+**M4. Where does the model come in?** Sarvam rewrites the computed brief in plain English, and every number must appear in the computed facts or a template replaces it. Detection, reconciliation and the recommendation are code.
+
+**M5. Is the data real?** No. The ledger is synthetic and labelled so; a real build reads the acquirer feed, and only the loader changes.
+
+**M6. Won't a festival week trigger it?** Yes, and that is why a person decides. A velocity-only anomaly recommends "confirm a genuine sales event", with no hold. The thresholds are fixed, not tuned on real merchants.
+
+**M7. Does it run on a timer?** Not yet: it runs when started (the button, or the n8n webhook). A scheduler is the obvious next step.
+
+---
+
 ## J. The team
 
 **J1. Who is on the team and who built what?**
@@ -376,9 +446,11 @@ Separating reading from deciding made the system both safer and easier to build:
 | Hidden owner | Rakesh Sharma 18% (60% of Sharma Holdings LLP's 30%) |
 | Upload to routed case | about 108 s through n8n (8 documents) |
 | Check runtime | under 1 s |
-| AI teammates | 5 (+ 2 human roles) |
-| n8n | 2 workflows, 43 nodes, native Cognee nodes |
-| Endpoints | 35 |
-| Tests | 81 backend, 24 frontend |
+| AI teammates | 7 (+ 2 human roles) |
+| n8n | 4 workflows, 75 nodes, native Cognee nodes |
+| Endpoints | 46 |
+| Tests | 172 backend, 69 frontend |
 | Voice scenarios verified | 7 (live agent, scripted merchant) plus the opening line |
-| Not built | DPDP consent record, authentication, CKYCR, Day-100 monitoring (outbound calling is built; no real call yet) |
+| Lifecycle | 10 stages: contact point verification (Drishti) and V-CIP sign-off sit before the bank settlement test |
+| Drishti checks | 4 hard (capture integrity, signboard name, within 100 m, not a screen) + 1 soft (MCC) |
+| Not built | DPDP consent record, authentication, CKYCR, Day-100 monitoring, face matching (outbound calling is built; no real call yet; Drishti not yet used on a real phone) |

@@ -1,9 +1,10 @@
-import { Network } from 'lucide-react';
+import { AppLogo } from '@/components/shared/AppLogo';
 
 interface BrandProps {
   compact?: boolean;
 }
 
+/** Product mark (the Paytm logo with the product name), used on the public pages. */
 export function Brand({ compact = false }: BrandProps) {
-  return <div className={`brand ${compact ? 'brand-compact' : ''}`}><span className="brand-mark"><Network size={compact ? 17 : 19} strokeWidth={2.5} /></span><span>KARYAKARTA</span></div>;
+  return <AppLogo size={compact ? 'sm' : 'md'} />;
 }

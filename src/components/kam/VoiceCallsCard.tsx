@@ -14,7 +14,7 @@ const TONE: Record<string, string> = {
 };
 
 const MEMORY: Record<string, { text: string; tone: string }> = {
-  stored: { text: 'In case memory', tone: 'text-purple-700' },
+  stored: { text: 'In case memory', tone: 'text-[#002970]' },
   pending: { text: 'Saving to memory…', tone: 'text-slate-500' },
   failed: { text: 'Memory unavailable', tone: 'text-amber-700' },
   'n/a': { text: '', tone: '' },

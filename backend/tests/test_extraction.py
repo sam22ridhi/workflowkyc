@@ -20,7 +20,7 @@ def load(name):
 
 def test_all_schemas_follow_sarvam_rules():
     assert validate_all() == {}
-    assert set(SCHEMAS) == {"pan", "gst", "coi", "board_resolution", "bank_cheque", "director_kyc", "shareholding", "fssai"}
+    assert set(SCHEMAS) == {"pan", "gst", "coi", "board_resolution", "bank_cheque", "director_kyc", "shareholding", "fssai", "electricity_bill"}
 
 
 def test_gst_fields_confidence_and_boxes():

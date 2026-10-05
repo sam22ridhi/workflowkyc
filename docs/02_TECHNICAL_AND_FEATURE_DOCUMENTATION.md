@@ -25,14 +25,20 @@ Principle: *the model reads, code checks, the model explains, a human approves.*
 
 | Capability | Status | Notes |
 |---|---|---|
-| Document upload, hashing, type detection | **Built, tested** | PDF/JPG/PNG up to 25 MB, SHA-256, 8 document types |
+| Document upload, hashing, type detection | **Built, tested** | PDF/JPG/PNG up to 25 MB, SHA-256, 9 document types |
+| KAM can delete a submitted file; demo reset of a case | **Built, live-verified with Cognee** | Delete re-runs the checks and removes the file's items from the merchant twin; locked once the case is with Compliance |
+| Realistic demo document pack (9 documents + 4 fixes) | **Built; the 9 documents are recorded live, the 4 fixes are not read yet** | `seed/make_realistic_docs.py`, watermarked specimens; see `07_DEMO_RUNBOOK.md` |
 | Field extraction with confidence and page location | **Built, live-verified** | Sarvam Document Intelligence; 51 fields on the 8-document hero case |
 | 10 cross-document checks + AUTO/ASK/ESCALATE routing | **Built, tested** | Plain Python, evidence on every result |
 | Beneficial-owner look-through (>10%) | **Built, tested** | Through a company/LLP shareholder using the declared partner table |
 | Auto-filled CRM form with citations and conflicts | **Built, tested** | 20 fields; overrides are audited |
 | PDF evidence viewer with bounding boxes | **Built** | Not exercised in a real browser during testing (pdf.js cannot run in the test environment) |
 | Merchant Digital Twin (Cognee graph) + Ask this case | **Built, live-verified** | Cognee Cloud, one dataset per case |
-| n8n orchestration with native Cognee nodes | **Built, live-verified** | 2 workflows, 43 nodes |
+| n8n orchestration with native Cognee nodes | **Built, live-verified** | 4 workflows, 75 nodes |
+| **Settlement Agent** (post-onboarding) | **Built, live-verified on a synthetic ledger** | Settlements tab on Case Detail, deterministic thresholds (>150% volume, >10% mismatch), MONITOR → RECONCILE → INVESTIGATE → CREATE CASE → ESCALATE through n8n, Cognee recall and store, Sarvam brief with verified numbers; opens an investigation case in the KAM queue. No real acquirer feed, no money movement, no scheduler. See `06_SETTLEMENT_AGENT.md` |
+| **Drishti: contact point verification** (stage 6) | **Built, live-verified with synthetic photos** | Secure camera-only link, five checks, autonomous `CPV_VERIFIED` only on four hard checks. Real Sarvam signboard reading and transliteration verified; capture page tested with fake browser APIs, **not on a real phone** |
+| Drishti evidence card (KAM) and the merchant's link card | **Built, tested** | Link and QR in the AI Communication Center instead of WhatsApp |
+| **V-CIP preparation** (stage 7) | **Built; the second voice agent is not tested** | Randomized Hindi questions, officer card, one-click sign-off. **No face matching.** Needs a second Sarvam agent (`SARVAM_VCIP_AGENT_ID`) |
 | Hindi voice agent (Sarvam Samvaad) | **Agent verified live** | 7 scenarios with a scripted merchant over a call session |
 | Voice call history, transcript, memory of calls | **Built, verified** | Via rehearsal calls through n8n into Cognee |
 | Maker / checker with server-side role and stage guard | **Built, tested** | Roles, not user accounts |
@@ -43,7 +49,7 @@ Principle: *the model reads, code checks, the model explains, a human approves.*
 | DPDP consent capture in the backend | **Not built** | The portal shows consent controls and the statutory text; nothing is stored |
 | CKYCR lookup | **Not built** | |
 | Day-100 transaction monitoring | **Not built** | Roadmap: same merchant graph plus a transaction feed |
-| Stages 6 to 8 (settlement test, e-agreement, live) | **Labels only** | No integrations |
+| Stages 8 to 10 (settlement test, e-agreement, live) | **Labels only** | No integrations |
 | Authentication / user accounts | **Not built** | The OTP login screen is a UI mock |
 
 ---
@@ -59,7 +65,8 @@ Principle: *the model reads, code checks, the model explains, a human approves.*
 | Document AI | Sarvam Document Intelligence via `sarvamai` 0.1.35: schema-based extraction + layout digitisation |
 | Voice AI | Sarvam Samvaad agent via `sarvam-conv-ai-sdk` 1.1.1 (call agent, Hindi); Sarvam speech-to-text and text-to-speech used by the test probe |
 | Memory | Cognee Cloud (knowledge graph, vector search, graph completion with Cognee's own LLM) |
-| Test data | `reportlab` generates the synthetic Sharma Foods PDFs (byte-identical on every run) |
+| Image checks | Pillow and numpy (screen-replay heuristic), OpenStreetMap Nominatim (geocoding), qrcode (QR for the merchant link) |
+| Test data | `reportlab` generates the synthetic Sharma Foods PDFs (byte-identical on every run); `seed/make_shop_photos.py` makes printable synthetic shop images |
 
 **Which model answers "Ask this case"?** Cognee's: the backend calls Cognee's search with `GRAPH_COMPLETION` and Cognee
 writes the answer. Sarvam is used to read documents and to speak, not to answer case questions.
@@ -80,7 +87,7 @@ writes the answer. Sarvam is used to read documents and to speak, not to answer 
 * **Pipeline dashboard:** 5 live KPI cards (open, pending AI verification, awaiting merchant, ready for submission,
   escalations), a case table with stage, document progress, AI flags, route badge (AUTO / ASK / ESCALATE) and SLA timer.
   Updates live as documents are processed.
-* **Case workspace:** merchant header, 8-stage tracker, the **10 cross-document checks**, each marked *Merchant can fix* or
+* **Case workspace:** merchant header, 10-stage tracker, the **10 cross-document checks**, each marked *Merchant can fix* or
   *Needs human judgement*, with clickable evidence that opens the source document with the field highlighted;
   uploaded/missing checklist; append-only timeline.
 * **Interactive PDF evidence:** the real PDF with every extracted value boxed on the page, a field list with confidence,
@@ -93,9 +100,15 @@ writes the answer. Sarvam is used to read documents and to speak, not to answer 
   the case memory.
 * **Approve and forward:** asks for confirmation on an ESCALATE case.
 
+### Merchant: shop verification (stage 6)
+The **AI Communication Center** shows a *Verify your shop* card with a secure link, a QR code and the two photos to take (no WhatsApp message). The link opens a camera-only capture page: no
+gallery picker, a live camera, high-accuracy GPS and bearing on every photo, then a clear outcome. Full detail in `05_DRISHTI_CPV_AND_VCIP.md`.
+
 ### Compliance (checker)
 * The same workspace with the checker's actions: *Send back* and *Approve (Compliance)*. The API allows them only after the
   KAM has submitted the case (stage 5) and only for the compliance role.
+* At stage 6 the KAM sees the **Drishti card** (photos with GPS and bearing, the five checks, distance, the signboard text read, approve after review or ask for new photos). At stage 7 Compliance sees the
+  **V-CIP card** (randomized questions with expected answers, the pre-interview transcript, the owner selfie and the ID document side by side, one-click sign-off, and a note that face matching is not automated).
 
 ---
 
@@ -370,7 +383,7 @@ review for that, plus data residency and retention terms.
 
 ---
 
-## 13. API reference (35 endpoints, all under `/api`, JSON envelope `{ok, data}`)
+## 13. API reference (57 endpoints, all under `/api`, JSON envelope `{ok, data}`)
 
 | Method and path | Purpose |
 |---|---|
@@ -394,6 +407,11 @@ review for that, plus data residency and retention terms.
 | `GET /voice-calls/{id}/memory-summary`, `POST /voice-calls/{id}/memory/result` | Call text for Cognee; report-back |
 | `GET /cases/{id}/timeline`, `GET /cases/{id}/events`, `GET /events` | Timeline; live event streams |
 | `GET /mock-registry/{id}` | The mock MCA / GST / penny-drop record the checks compare against |
+| `GET /cpv/{token}`, `POST /cpv/{token}/capture`, `POST /cpv/{token}/submit` | Drishti, public with the one-time token: capture state, one live-camera frame, send for verification |
+| `GET /cases/{id}/cpv`, `POST …/cpv/link`, `POST …/cpv/analyse`, `GET …/cpv/images/{kind}`, `GET …/cpv/memory-summary`, `POST …/cpv/memory/result`, `POST …/cpv/demo-reference` | The case's verification, the link, running Drishti (n8n), evidence photos, Cognee storage, a labelled demo reference (off by default) |
+| `GET /cases/{id}/vcip` | The V-CIP record. `POST …/action` adds `cpv_approve`, `cpv_retake`, `vcip_call`, `vcip_signoff`; `voice-chase/*` accept `kind=vcip` |
+| `DELETE /documents/{id}?actor=kam`, `POST /cases/{id}/demo/reset` | KAM housekeeping: delete a submitted file (before Compliance; re-runs the checks, removes its Cognee items), and a demo-only reset of a seeded case (off unless `CPV_ALLOW_DEMO_REFERENCE=true`) |
+| `GET /cases/{id}/settlements`, `POST …/settlements/scan`, `POST …/settlements/monitor`, `…/reconcile`, `…/investigate`, `GET /settlements/{id}/memory-summary`, `POST /settlements/{id}/memory/result`, `POST …/settlements/demo/spike`, `…/demo/reset` | Settlement Agent: the Settlements tab, starting the chain, the n8n steps, storing the finding in Cognee, demo controls (off by default). `POST …/action` adds `inv_resolve` and `inv_dismiss` (KAM only) |
 
 Interactive documentation is generated at `http://localhost:8765/docs`.
 
@@ -409,6 +427,9 @@ Interactive documentation is generated at `http://localhost:8765/docs`.
 | `VoiceCall` | case, outcome, summary, transcript, Sarvam interaction id, memory status |
 | `AuditEvent` | append-only: case, actor, title, detail, tone, document |
 | `CrmOverride` | case, field, KAM value, AI value, actor, time |
+| `CpvSession` | case, one-time token, status, expiry, captures (photo path, SHA-256, GPS, accuracy, bearing, times, EXIF flag), result (verdict, five checks, distance, signboard text), memory status |
+| `VcipRecord` | case, status (queued, interviewed, signed_off), randomized questions with expected answers, transcript, call id, sign-off person and time |
+(`Case` also gains `mcc` and the reference location fields; stage runs 1 to 10.)
 
 ---
 
@@ -430,8 +451,8 @@ Interactive documentation is generated at `http://localhost:8765/docs`.
 
 | Suite | Count | What it covers |
 |---|---|---|
-| Backend (pytest) | **81** | Extraction normalisation on **real Sarvam responses**, box location, validators, the 10 checks on the planted issues, CRM form, memory with a fake store, Cognee outage and circuit breaker, voice context and call records, role and stage guard, and an end-to-end test on the 8 real PDFs with recorded Sarvam responses |
-| Frontend (Vitest) | **24** | Dashboard, case overview, evidence navigation, Ask, voice drawer and history, upload, offline fallback, rendered against **real backend responses** |
+| Backend (pytest) | **172** | Extraction normalisation on **real Sarvam responses**, box location, validators, the 10 checks on the planted issues, CRM form, memory with a fake store, Cognee outage and circuit breaker, voice context and call records, role and stage guard, and an end-to-end test on the 8 real PDFs with recorded Sarvam responses |
+| Frontend (Vitest) | **69** | Dashboard, case overview, evidence navigation, Ask, voice drawer and history, upload, offline fallback, rendered against **real backend responses** |
 | Live, manual | n/a | Full upload through n8n with live Sarvam and Cognee; voice agent scenarios; Cognee 409 behaviour reproduced and fixed |
 
 The tests never call Sarvam or Cognee. **Not verified in a real browser:** the layout, the pdf.js rendering and highlight boxes,
@@ -468,11 +489,16 @@ No manual-baseline measurement exists. Do not quote hours saved unless you can s
 8. Evidence boxes: 4 of 51 hero fields are not located; tables are boxed at table level.
 9. Voice was tested in Hindi, Hinglish and English with a synthetic voice, not with real merchant speech or noise.
 10. Built and tested for a handful of cases, not for load.
+11. **Drishti on real phones:** the capture page has not been used on a real phone camera or GPS (it needs an https tunnel), nor on real storefront photographs.
+12. **A web page cannot prove a photo is live.** The server checks and the evidence make spoofing hard and visible, not impossible.
+13. **The screen-replay heuristic** was calibrated on synthetic images only and can miss a perfectly axis-aligned screen grid. The MCC check is a keyword match.
+14. **Geocoding** uses OpenStreetMap, whose precision for real Indian street addresses was not tested; the demo needs a labelled reference point.
+15. **V-CIP:** no face matching; the second voice agent needs to be created and was not tested; the human official's sign-off is the control, as RBI requires.
 
 **Roadmap (each is one module or node):**
 first real phone call and (optionally) Sarvam's call-completed callback · real MCA21 / GSTN / penny-drop adapters · CKYCR check · automatic chase
 on the ASK route · authenticated users with person-level four-eyes and a DPDP consent ledger · WhatsApp/email dispatch ·
-Day-100 monitoring (same merchant graph plus a transaction feed) · stages 6 to 8 integrations.
+Day-100 monitoring (same merchant graph plus a transaction feed) · stages 8 to 10 integrations · real-phone testing of Drishti and a face-matching model for V-CIP.
 
 ---
 
@@ -488,10 +514,10 @@ workflowkyc/
 │   ├── scripts/              voice_agent_probe.py and Sarvam helpers
 │   ├── seed/                 synthetic Sharma Foods PDFs + demo seeding
 │   ├── demo_cache/           recorded Sarvam results and saved answers
-│   └── tests/                81 tests
+│   └── tests/                172 tests
 └── docs/                     these documents
 ```
 
-Run order: `backend\run.bat` (port 8765) → n8n container (5678) with the two workflows published → `npm run dev` (5173).
+Run order: `backend\run.bat` (port 8765) → n8n container (5678) with the three workflows published → `npm run dev` (5173).
 Demo data: `seed.bat --reset`, or `seed.bat --reset --hero-docs` to preload the 8 documents. Full setup, environment variables,
 the demo script and a troubleshooting table are in `backend/README.md`.

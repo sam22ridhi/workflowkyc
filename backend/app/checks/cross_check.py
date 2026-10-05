@@ -307,7 +307,8 @@ def c8_address(case, by_type, registry) -> dict:
     reg_addr, op_addr = case.registered_address, _op_addr(case)
     coi, gst, fssai = (_val(by_type, "coi", "registered_office_address"), _val(by_type, "gst", "principal_place_address"),
                        _val(by_type, "fssai", "premises_address"))
-    if not (coi or gst or fssai):
+    bill = _val(by_type, "electricity_bill", "service_address")
+    if not (coi or gst or fssai or bill):
         return _check("address_consistent", label, "skip", "No document with an address has been read yet.")
     bad, good, issues = [], [], []
     app_ev = [_app("registered_address", reg_addr)] + ([_app("operating_address", op_addr)] if op_addr != reg_addr else [])
@@ -328,6 +329,13 @@ def c8_address(case, by_type, registry) -> dict:
             gst_issues.append(f"the GST registry holds “{g['principal_place']}”")
         (bad if gst_issues else good).append(e)
         issues += gst_issues
+    if bill:
+        e = _ev(by_type, "electricity_bill", "service_address")
+        if op_addr and _differs("address", bill, op_addr):
+            issues.append(f"the electricity bill's service address is “{bill}” but the application says “{op_addr}”")
+            bad.append(e)
+        else:
+            good.append(e)
     if fssai and gst:
         e = _ev(by_type, "fssai", "premises_address")
         if _differs("address", fssai, gst):

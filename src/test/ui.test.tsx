@@ -115,7 +115,7 @@ describe('Case overview (live case)', () => {
     expect(screen.getByText(/Sharma Foods Private Limited · CIN: U56101MH2021PTC123456/)).toBeInTheDocument();
     expect(screen.getByText(/Cap reached/i)).toBeInTheDocument();
     expect(screen.getByText(/ESCALATE · needs human judgement/)).toBeInTheDocument();
-    expect(screen.getByText(/Stage 4 of 8/)).toBeInTheDocument();
+    expect(screen.getByText(/Stage 4 of 10/)).toBeInTheDocument();
     expect(screen.getAllByText('KAM Review').length).toBeGreaterThan(0);
 
     expect(screen.getByText('6/10 passed')).toBeInTheDocument();
@@ -285,6 +285,7 @@ describe('Voice chase history', () => {
 });
 
 describe('Merchant upload (real files)', () => {
+  // a brand-new case: nothing stored yet (the portal now starts from the case's own documents)
   const file = (name: string, type = 'application/pdf') => new File([`%PDF ${name}`], name, { type });
   const report = (names: string[], rejected: { filename: string; reason: string }[] = []) => ({
     doc_ids: names.map((_, i) => `d${i}`),
@@ -294,7 +295,7 @@ describe('Merchant upload (real files)', () => {
 
   it('uploads a batch through the backend, shows the hash and detected type, and drops rejected files', async () => {
     const onUploadFiles = vi.fn().mockResolvedValue(report(['GST_Certificate.pdf'], [{ filename: 'notes.exe', reason: "Unsupported type '.exe'. Allowed: pdf, jpg, png." }]));
-    const { container } = render(<MerchantUploadScreen view="upload" caseData={hero} onUploadFiles={onUploadFiles} onOpenKAM={vi.fn()} onNavigate={vi.fn()} />);
+    const { container } = render(<MerchantUploadScreen view="upload" caseData={{ ...hero, uploaded: [], missing: [] }} onUploadFiles={onUploadFiles} onOpenKAM={vi.fn()} onNavigate={vi.fn()} />);
     expect(screen.getByText('5. Company & Governance')).toBeInTheDocument();       // the new slot for COI / board resolution / shareholding
     expect(screen.getByText(/Please submit the 5 required/)).toBeInTheDocument();
 
@@ -321,7 +322,7 @@ describe('Merchant upload (real files)', () => {
 
   it('reports an upload failure instead of pretending the file arrived', async () => {
     const onUploadFiles = vi.fn().mockRejectedValue(new Error('Failed to fetch'));
-    const { container } = render(<MerchantUploadScreen view="upload" caseData={hero} onUploadFiles={onUploadFiles} onOpenKAM={vi.fn()} onNavigate={vi.fn()} />);
+    const { container } = render(<MerchantUploadScreen view="upload" caseData={{ ...hero, uploaded: [], missing: [] }} onUploadFiles={onUploadFiles} onOpenKAM={vi.fn()} onNavigate={vi.fn()} />);
     fireEvent.change(container.querySelector('input[type="file"]')!, { target: { files: [file('PAN.pdf')] } });
     expect(await screen.findByText('Failed to fetch')).toBeInTheDocument();
     expect(screen.getByText('No documents uploaded yet')).toBeInTheDocument();

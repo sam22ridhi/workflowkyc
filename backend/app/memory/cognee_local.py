@@ -24,6 +24,12 @@ class CogneeLocalStore:
         os.environ.setdefault("SYSTEM_ROOT_DIRECTORY", os.path.join(root, "system"))
         self._lock = threading.Lock()   # the local SQLite/Kuzu stores are single-writer
 
+    def delete_data(self, dataset: str, data_ids: list[str]) -> int:
+        raise MemoryUnavailable("Deleting memory items is not supported in local Cognee mode; the copy stays until the local store is cleared.")
+
+    def delete_dataset(self, dataset: str) -> bool:
+        raise MemoryUnavailable("Deleting a dataset is not supported in local Cognee mode.")
+
     @staticmethod
     def _import():
         try:

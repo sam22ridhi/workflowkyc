@@ -40,6 +40,12 @@
               "name": "to_number",
               "value": "={{ $json.body.to_number }}",
               "type": "string"
+            },
+            {
+              "id": "7c78889c-919e-5894-9f8f-7ee936a01e9d",
+              "name": "kind",
+              "value": "={{ $json.body.kind || 'chase' }}",
+              "type": "string"
             }
           ]
         },
@@ -57,7 +63,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $('Settings (start)').first().json.backend_url }}/api/cases/{{ $('Settings (start)').first().json.case_id }}/voice-chase/context",
+        "url": "={{ $('Settings (start)').first().json.backend_url }}/api/cases/{{ $('Settings (start)').first().json.case_id }}/voice-chase/context?kind={{ $('Settings (start)').first().json.kind }}",
         "options": {
           "timeout": 30000
         }
@@ -113,7 +119,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ to_number: $('Settings (start)').first().json.to_number }) }}"
+        "jsonBody": "={{ JSON.stringify({ to_number: $('Settings (start)').first().json.to_number, kind: $('Settings (start)').first().json.kind }) }}"
       },
       "id": "278a6bc0-684b-5370-b3db-f7924d1b3bb2",
       "name": "Place call (Sarvam)",
@@ -166,6 +172,12 @@
               "id": "560cdb1d-2f2e-5b04-ba91-1160191b239a",
               "name": "case_id",
               "value": "={{ $('Settings (start)').first().json.case_id }}",
+              "type": "string"
+            },
+            {
+              "id": "f97afbf9-f084-5b8b-9826-5cd55c810161",
+              "name": "kind",
+              "value": "={{ $('Settings (start)').first().json.kind }}",
               "type": "string"
             },
             {
@@ -224,7 +236,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "={{ $('Settings (start)').first().json.backend_url }}/api/cases/{{ $('Settings (start)').first().json.case_id }}/voice-chase/attempts/{{ $('Place call (Sarvam)').first().json.data.attempt_id }}",
+        "url": "={{ $('Settings (start)').first().json.backend_url }}/api/cases/{{ $('Settings (start)').first().json.case_id }}/voice-chase/attempts/{{ $('Place call (Sarvam)').first().json.data.attempt_id }}?kind={{ $('Settings (start)').first().json.kind }}",
         "options": {
           "timeout": 30000
         }
@@ -280,6 +292,12 @@
               "id": "3b552173-cc63-574c-8582-72a7b1ab79ee",
               "name": "case_id",
               "value": "={{ $('Settings (start)').first().json.case_id }}",
+              "type": "string"
+            },
+            {
+              "id": "65fef62d-c9e1-5fce-8289-b00367ffcc73",
+              "name": "kind",
+              "value": "={{ $('Settings (start)').first().json.kind }}",
               "type": "string"
             },
             {
@@ -367,6 +385,12 @@
               "type": "string"
             },
             {
+              "id": "06177a06-1a1e-536d-b700-ecd01c1bf86f",
+              "name": "kind",
+              "value": "={{ $json.body.kind || 'chase' }}",
+              "type": "string"
+            },
+            {
               "id": "c399ce11-6eaf-54d3-87d9-05c0fdf5c4c2",
               "name": "outcome",
               "value": "={{ $json.body.outcome }}",
@@ -420,6 +444,12 @@
               "type": "string"
             },
             {
+              "id": "0cec86ca-f969-59c1-9f6a-f72dcb8fc6a2",
+              "name": "kind",
+              "value": "={{ $json.kind }}",
+              "type": "string"
+            },
+            {
               "id": "962820ae-5bd3-5961-9099-7f4835fe4b31",
               "name": "outcome",
               "value": "={{ $json.outcome }}",
@@ -465,7 +495,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ (() => { const r = $('Settings (result)').first().json; return JSON.stringify({ outcome: r.outcome, summary: r.summary || null, transcript: (r.transcript && r.transcript.length) ? r.transcript : null, call_id: r.call_id || null }); })() }}"
+        "jsonBody": "={{ (() => { const r = $('Settings (result)').first().json; return JSON.stringify({ kind: r.kind || 'chase', outcome: r.outcome, summary: r.summary || null, transcript: (r.transcript && r.transcript.length) ? r.transcript : null, call_id: r.call_id || null }); })() }}"
       },
       "id": "1ffa3818-ae52-5795-8650-138bedfc3825",
       "name": "Record call on case",

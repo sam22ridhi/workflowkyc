@@ -4,7 +4,9 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlmodel import Session
 
-from app import extraction
+from typing import Literal
+
+from app import case_admin, extraction
 from app.db import audit, get_session
 from app.doctypes import DOC_TYPES
 from app.models import Document, utcnow
@@ -24,6 +26,12 @@ def get_doc(session: Session, doc_id: str) -> Document:
 @router.get("/documents/{doc_id}", response_model=Envelope[DocumentOut])
 def read_document(doc_id: str, session: Session = Depends(get_session)):
     return Envelope(data=doc_out(get_doc(session, doc_id)))
+
+
+@router.delete("/documents/{doc_id}")
+def delete_document(doc_id: str, actor: Literal["merchant", "kam", "compliance", "agent"] = "kam", session: Session = Depends(get_session)):
+    """KAM only, before the case is submitted to Compliance: removes the file, re-runs the checks on what is left, forgets it in the merchant twin."""
+    return {"ok": True, "data": case_admin.delete_document(session, get_doc(session, doc_id), actor)}
 
 
 @router.get("/documents/{doc_id}/file")

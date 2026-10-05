@@ -207,6 +207,7 @@ _CLASS_RULES: list[tuple[str, list[str]]] = [
     ("board_resolution", ["board resolution", "resolved that", "resolved further"]),
     ("shareholding", ["shareholding", "beneficial owner", "shareholders"]),
     ("fssai", ["fssai", "food safety and standards"]),
+    ("electricity_bill", ["electricity bill", "consumer number", "units consumed", "meter number", "energy charges", "discom"]),
     ("bank_cheque", ["cheque", "ifsc", "account number", "bank letter"]),
     ("director_kyc", ["aadhaar", "identity proof", "passport", "voter", "driving licence", "driving license"]),
     ("pan", ["permanent account number", "income tax department"]),

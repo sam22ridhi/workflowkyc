@@ -1,0 +1,563 @@
+{
+  "id": "kkSettle000000001",
+  "name": "Karyakarta - Settlement agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "karyakarta-settlement-scan",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "061af0e1-45b9-5816-ab60-96baa8732547",
+      "name": "Settlement scan requested",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        200
+      ],
+      "webhookId": "karyakarta-settlement-scan"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7a2eb463-3e6d-56a9-8f6f-1c04ef07448e",
+              "name": "backend_url",
+              "value": "http://host.docker.internal:8765",
+              "type": "string"
+            },
+            {
+              "id": "df972fc4-6b86-5ea5-8eba-6a32f6c2f92d",
+              "name": "case_id",
+              "value": "={{ $json.body.case_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5f38ad3e-d04b-5698-81f6-60c202ea72c4",
+      "name": "Settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.backend_url }}/api/cases/{{ $('Settings').first().json.case_id }}/settlements/monitor",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "32427793-0286-5152-97ee-b55a60536516",
+      "name": "MONITOR: compare with the 30-day baseline",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1f6b160e-1579-50b3-9934-1c89b8e5bba6",
+              "leftValue": "={{ $json.data && $json.data.anomaly === true }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9df52394-abab-54c9-9935-9839f5fdf1e4",
+      "name": "Anomaly detected?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "66c59bf3-8603-5940-ac7f-ff0f68fddec6",
+              "name": "result",
+              "value": "No new case: both thresholds are within limits, or an investigation is already open",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fa477c1e-8c53-5ee6-be66-c3ee6122deec",
+      "name": "Healthy, or already under investigation",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.backend_url }}/api/cases/{{ $('Settings').first().json.case_id }}/settlements/reconcile",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "40466bbb-1d4e-57aa-a5ab-663d7b506a83",
+      "name": "RECONCILE: expected vs actual",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "memory",
+        "operation": "recall",
+        "recallQuery": "What did this merchant declare at onboarding about its business, expected turnover, outlet locations and payment terminals, and were there any risk notes or verification results?",
+        "recallDatasets": [
+          "={{ $('MONITOR: compare with the 30-day baseline').first().json.data.dataset }}"
+        ],
+        "recallTopK": 8,
+        "recallSimplify": true
+      },
+      "id": "98c25b44-c88f-5379-a704-6e898d682e33",
+      "name": "Cognee: recall the merchant twin",
+      "type": "n8n-nodes-cognee.cognee",
+      "typeVersion": 1,
+      "position": [
+        1140,
+        100
+      ],
+      "credentials": {
+        "cogneeApi": {
+          "id": "kkCogneeCloud01",
+          "name": "Cognee Cloud (Karyakarta)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "items",
+        "options": {}
+      },
+      "id": "3eaf5d5e-2bc1-5467-89dc-340c74dca1f2",
+      "name": "Combine recall",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        100
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.backend_url }}/api/cases/{{ $('Settings').first().json.case_id }}/settlements/investigate",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ context: (($json.items || []).some(i => i.error)) ? { error: ($json.items.find(i => i.error).error.message || String($json.items.find(i => i.error).error)) } : $json }) }}"
+      },
+      "id": "80e0b052-113e-52eb-99dc-e43eec3199ae",
+      "name": "INVESTIGATE: open the investigation case",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1620,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9f2b8177-0f74-54bf-b021-0282c8cd2fed",
+              "leftValue": "={{ $json.data && $json.data.created === true }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a7d50d2d-d2e7-5448-844f-96afa807a13f",
+      "name": "Case created?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1860,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bc07a489-2e8f-54be-aa0d-7e68672481ed",
+              "name": "result",
+              "value": "={{ $json.data.reason }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e6fe9bfb-aaee-5c26-8a60-ac7a740f1316",
+      "name": "No new case",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2100,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings').first().json.backend_url }}/api/settlements/{{ $('INVESTIGATE: open the investigation case').first().json.data.investigation_id }}/memory-summary",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "af09775c-d34f-5ddb-9893-6e90c92036e2",
+      "name": "Get finding memory summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2100,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "memory",
+        "operation": "remember",
+        "rememberInputType": "text",
+        "rememberText": [
+          "={{ $json.data.text }}"
+        ],
+        "rememberDatasetName": "={{ $json.data.dataset }}",
+        "rememberAdditionalFields": {
+          "fileNamePrefix": "={{ $json.data.file_prefix }}",
+          "runInBackground": true
+        }
+      },
+      "id": "fa5e3efa-3104-53e1-af7d-5ca5d974b2c6",
+      "name": "Cognee: store the finding in the merchant twin",
+      "type": "n8n-nodes-cognee.cognee",
+      "typeVersion": 1,
+      "position": [
+        2340,
+        0
+      ],
+      "credentials": {
+        "cogneeApi": {
+          "id": "kkCogneeCloud01",
+          "name": "Cognee Cloud (Karyakarta)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings').first().json.backend_url }}/api/settlements/{{ $('INVESTIGATE: open the investigation case').first().json.data.investigation_id }}/memory/result",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.error ? { status: 'failed', error: String($json.error.message || $json.error).slice(0, 900) } : { status: 'stored' }) }}"
+      },
+      "id": "69dbb5a6-6072-55a2-8f68-e1fbcec05530",
+      "name": "Report finding stored",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2580,
+        0
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "cognify",
+        "operation": "cognify",
+        "datasets": [
+          "={{ $('Get finding memory summary').first().json.data.dataset }}"
+        ],
+        "runInBackground": true,
+        "cognifyAdditionalOptions": {}
+      },
+      "id": "7beb43e6-9ffe-5e3b-9a35-01add3e30ac3",
+      "name": "Cognee: refresh knowledge graph",
+      "type": "n8n-nodes-cognee.cognee",
+      "typeVersion": 1,
+      "position": [
+        2820,
+        0
+      ],
+      "credentials": {
+        "cogneeApi": {
+          "id": "kkCogneeCloud01",
+          "name": "Cognee Cloud (Karyakarta)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a4764605-7c68-5be5-ae53-3e7d392e93d6",
+              "name": "investigation",
+              "value": "={{ $('INVESTIGATE: open the investigation case').first().json.data.investigation_id }}",
+              "type": "string"
+            },
+            {
+              "id": "8b4c002d-f28d-58f6-803b-04df12878a3e",
+              "name": "recommended",
+              "value": "={{ $('INVESTIGATE: open the investigation case').first().json.data.recommended.title }}",
+              "type": "string"
+            },
+            {
+              "id": "3efc8e0b-1de3-5c8a-a2c3-7feb98a60169",
+              "name": "next",
+              "value": "A person (KAM) reviews the evidence and decides. The agent has not moved or held any money.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b8891576-3a7d-59a2-af0d-04f2ca261575",
+      "name": "Escalated: in the KAM Needs Attention queue",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3060,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Settlement scan requested": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "MONITOR: compare with the 30-day baseline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MONITOR: compare with the 30-day baseline": {
+      "main": [
+        [
+          {
+            "node": "Anomaly detected?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anomaly detected?": {
+      "main": [
+        [
+          {
+            "node": "RECONCILE: expected vs actual",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Healthy, or already under investigation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RECONCILE: expected vs actual": {
+      "main": [
+        [
+          {
+            "node": "Cognee: recall the merchant twin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cognee: recall the merchant twin": {
+      "main": [
+        [
+          {
+            "node": "Combine recall",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine recall": {
+      "main": [
+        [
+          {
+            "node": "INVESTIGATE: open the investigation case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INVESTIGATE: open the investigation case": {
+      "main": [
+        [
+          {
+            "node": "Case created?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Case created?": {
+      "main": [
+        [
+          {
+            "node": "Get finding memory summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No new case",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get finding memory summary": {
+      "main": [
+        [
+          {
+            "node": "Cognee: store the finding in the merchant twin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cognee: store the finding in the merchant twin": {
+      "main": [
+        [
+          {
+            "node": "Report finding stored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report finding stored": {
+      "main": [
+        [
+          {
+            "node": "Cognee: refresh knowledge graph",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cognee: refresh knowledge graph": {
+      "main": [
+        [
+          {
+            "node": "Escalated: in the KAM Needs Attention queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {},
+  "active": false
+}

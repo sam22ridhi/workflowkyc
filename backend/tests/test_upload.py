@@ -5,7 +5,8 @@ PDF = b"%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n"
 
 def test_seed_and_list(client):
     r = client.get("/api/cases").json()
-    assert r["ok"] and len(r["data"]["items"]) == 5
+    onboarding = [c for c in r["data"]["items"] if c["id"] != "KYB-20820"]        # the Settlement Agent demo merchant may exist (created by its own tests)
+    assert r["ok"] and len(onboarding) == 5
     hero = next(c for c in r["data"]["items"] if c["id"] == "KYB-20814")
     assert hero["legalName"] == "Sharma Foods Private Limited"
     assert r["data"]["kpis"]["totalOpen"] == 5
@@ -107,7 +108,7 @@ def test_only_people_can_decide_and_stages_are_enforced(client):
     r = client.post("/api/cases/KYB-20818/action", json={"action": "compliance_approve", "actor": "compliance"})
     assert r.status_code == 200 and r.json()["data"]["stage"] == 6
     titles = [t["title"] for t in r.json()["data"]["timeline"]]
-    assert titles[-2:] == ["KAM approved & submitted to Compliance", "Compliance approved"]
+    assert titles[-3:] == ["KAM approved & submitted to Compliance", "Compliance approved", "Shop verification link ready"]
     # the refused attempts left no trace on the timeline of the case they targeted
     assert "KAM approved & submitted to Compliance" not in [t["title"] for t in client.get("/api/cases/KYB-20816").json()["data"]["timeline"]]
 

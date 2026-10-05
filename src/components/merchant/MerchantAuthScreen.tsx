@@ -1,3 +1,4 @@
+import { AppLogo } from '@/components/shared/AppLogo';
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Check, LockKeyhole, MessageCircle, ShieldCheck } from 'lucide-react';
 import { Brand } from '@/components/shared/Brand';
@@ -39,15 +40,7 @@ export function MerchantAuthScreen({ onSuccess, onBack }: MerchantAuthScreenProp
     <div className="min-h-screen bg-[#f4f7fb] flex flex-col font-sans text-slate-900 selection:bg-[#00BAF2]/20">
       <header className="flex items-center justify-between px-6 py-4 bg-white border-b border-slate-200 sticky top-0 z-10 shadow-2xs">
         <button className="hover:opacity-80 transition-opacity flex items-center gap-2.5" onClick={onBack}>
-          <div className="w-8 h-8 rounded-lg bg-[#002970] text-[#00BAF2] flex items-center justify-center font-black text-sm shadow-xs">
-            K
-          </div>
-          <div className="flex flex-col text-left leading-tight">
-            <span className="text-[13px] font-extrabold tracking-widest text-[#002970]">
-              KARYAKARTA<span className="text-[#00BAF2] ml-0.5">·AI</span>
-            </span>
-            <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">Paytm Corporate Gateway</span>
-          </div>
+          <AppLogo subtitle="Paytm Corporate Gateway" size="md" />
         </button>
         <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-emerald-50 px-3.5 py-1.5 rounded-full border border-emerald-200 shadow-2xs">
           <ShieldCheck size={15} className="text-emerald-600" /> Secure Paytm Business Merchant Onboarding

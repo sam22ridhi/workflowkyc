@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 520" fill="none" role="img" aria-label="People reviewing merchant profiles that are verified by AI">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="46%" r="56%">
+      <stop offset="0" stop-color="#1b78e0" stop-opacity=".6"/>
+      <stop offset="1" stop-color="#002970" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e3f0ff"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="300" cy="262" r="238" fill="url(#glow)"/>
+  <circle cx="300" cy="262" r="218" stroke="#4aa3ee" stroke-opacity=".35" stroke-dasharray="3 8"/>
+  <circle cx="300" cy="262" r="168" stroke="#00BAF2" stroke-opacity=".25"/>
+
+  <!-- paper plane on a dashed path -->
+  <path d="M52 168 C 96 70, 190 52, 262 74" stroke="#00BAF2" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round"/>
+  <path d="M262 74 L 306 54 L 290 96 L 279 82 Z" fill="#00BAF2"/>
+  <path d="M279 82 L 306 54" stroke="#ffffff" stroke-opacity=".7" stroke-width="1.5"/>
+
+  <!-- left profile card -->
+  <g>
+    <rect x="46" y="156" width="152" height="196" rx="14" fill="url(#card)" stroke="#a9cdf2"/>
+    <circle cx="62" cy="171" r="3" fill="#a9cdf2"/><circle cx="73" cy="171" r="3" fill="#a9cdf2"/><circle cx="84" cy="171" r="3" fill="#a9cdf2"/>
+    <circle cx="122" cy="216" r="27" fill="#dcecfd" stroke="#00BAF2" stroke-width="2"/>
+    <circle cx="122" cy="210" r="10.5" fill="#f2c9a7"/>
+    <path d="M111 209 C111 197 133 197 133 209 C128 204 117 204 111 209Z" fill="#0b1e55"/>
+    <path d="M104 238 C106 226 138 226 140 238 C132 244 112 244 104 238Z" fill="#e4584b"/>
+    <rect x="74" y="258" width="96" height="7" rx="3.5" fill="#c4dbf5"/>
+    <rect x="86" y="272" width="72" height="6" rx="3" fill="#d6e6f9"/>
+    <g fill="#f5b942"><circle cx="100" cy="292" r="3.2"/><circle cx="111" cy="292" r="3.2"/><circle cx="122" cy="292" r="3.2"/><circle cx="133" cy="292" r="3.2"/><circle cx="144" cy="292" r="3.2" fill="#c4dbf5"/></g>
+    <rect x="66" y="308" width="14" height="14" rx="3.5" fill="#00BAF2"/><path d="M69.5 315 L72.5 318 L77.5 311.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="88" y="311" width="76" height="6" rx="3" fill="#c4dbf5"/>
+    <rect x="66" y="328" width="14" height="14" rx="3.5" fill="#dcecfd" stroke="#a9cdf2"/>
+    <rect x="88" y="331" width="58" height="6" rx="3" fill="#d6e6f9"/>
+  </g>
+
+  <!-- centre profile card (the one being reviewed) -->
+  <g>
+    <rect x="212" y="62" width="196" height="256" rx="16" fill="url(#card)" stroke="#7fb9ee" stroke-width="1.5"/>
+    <circle cx="230" cy="80" r="3.5" fill="#a9cdf2"/><circle cx="242" cy="80" r="3.5" fill="#a9cdf2"/><circle cx="254" cy="80" r="3.5" fill="#a9cdf2"/>
+    <circle cx="310" cy="146" r="40" fill="#dcecfd" stroke="#00BAF2" stroke-width="3"/>
+    <circle cx="310" cy="136" r="15" fill="#f2c9a7"/>
+    <path d="M294 134 C294 116 326 116 326 134 C320 126 301 126 294 134Z" fill="#0b1e55"/>
+    <path d="M281 178 C285 158 335 158 339 178 C326 188 294 188 281 178Z" fill="#f5a43a"/>
+    <circle cx="344" cy="176" r="12" fill="#00BAF2" stroke="#fff" stroke-width="2.5"/>
+    <path d="M338.5 176 L342.5 180 L350 172" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="252" y="204" width="116" height="9" rx="4.5" fill="#b9d3f2"/>
+    <rect x="270" y="220" width="80" height="7" rx="3.5" fill="#d0e2f8"/>
+    <g fill="#f5b942"><circle cx="280" cy="242" r="4"/><circle cx="294" cy="242" r="4"/><circle cx="308" cy="242" r="4"/><circle cx="322" cy="242" r="4"/><circle cx="336" cy="242" r="4" fill="#c4dbf5"/></g>
+    <rect x="236" y="262" width="16" height="16" rx="4" fill="#00BAF2"/><path d="M240 270 L243.5 273.5 L249 266.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="260" y="266" width="112" height="7" rx="3.5" fill="#c4dbf5"/>
+    <rect x="236" y="286" width="16" height="16" rx="4" fill="#00BAF2"/><path d="M240 294 L243.5 297.5 L249 290.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="260" y="290" width="86" height="7" rx="3.5" fill="#c4dbf5"/>
+  </g>
+
+  <!-- right profile card -->
+  <g>
+    <rect x="418" y="146" width="136" height="180" rx="14" fill="url(#card)" stroke="#a9cdf2"/>
+    <circle cx="434" cy="161" r="3" fill="#a9cdf2"/><circle cx="445" cy="161" r="3" fill="#a9cdf2"/><circle cx="456" cy="161" r="3" fill="#a9cdf2"/>
+    <circle cx="486" cy="204" r="25" fill="#dcecfd" stroke="#00BAF2" stroke-width="2"/>
+    <circle cx="486" cy="198" r="10" fill="#e9b996"/>
+    <path d="M475 196 C475 184 497 184 497 196 C492 191 481 191 475 196Z" fill="#0b1e55"/>
+    <path d="M469 225 C472 214 500 214 503 225 C496 231 476 231 469 225Z" fill="#00BAF2"/>
+    <rect x="446" y="244" width="80" height="7" rx="3.5" fill="#c4dbf5"/>
+    <rect x="456" y="258" width="60" height="6" rx="3" fill="#d6e6f9"/>
+    <rect x="440" y="280" width="14" height="14" rx="3.5" fill="#00BAF2"/><path d="M443.5 287 L446.5 290 L451.5 283.5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="462" y="283" width="64" height="6" rx="3" fill="#c4dbf5"/>
+    <rect x="440" y="300" width="14" height="14" rx="3.5" fill="#dcecfd" stroke="#a9cdf2"/>
+    <rect x="462" y="303" width="48" height="6" rx="3" fill="#d6e6f9"/>
+  </g>
+
+  <!-- floor shadows -->
+  <ellipse cx="150" cy="486" rx="58" ry="8" fill="#001340" fill-opacity=".55"/>
+  <ellipse cx="500" cy="486" rx="84" ry="8" fill="#001340" fill-opacity=".55"/>
+
+  <!-- plant -->
+  <g>
+    <path d="M62 452 C46 424 44 402 54 384 C66 402 70 430 62 452Z" fill="#2bb6a8"/>
+    <path d="M62 452 C70 426 84 412 98 408 C96 428 82 446 62 452Z" fill="#43cbbb"/>
+    <path d="M60 452 C48 440 34 436 22 438 C28 450 42 456 60 452Z" fill="#2bb6a8"/>
+    <path d="M44 458 H80 L75 488 H49 Z" fill="#d8574a"/>
+  </g>
+
+  <!-- woman, standing, pointing at the centre card -->
+  <g>
+    <rect x="137" y="420" width="12" height="62" rx="5" fill="#f2c9a7"/>
+    <rect x="157" y="420" width="12" height="62" rx="5" fill="#f2c9a7"/>
+    <path d="M132 482 H151 V474 H132Z" fill="#0b1e55"/><path d="M155 482 H174 V474 H155Z" fill="#0b1e55"/>
+    <path d="M124 364 H182 L196 430 H110 Z" fill="#1d55c8"/>
+    <rect x="127" y="296" width="54" height="76" rx="17" fill="#e4584b"/>
+    <path d="M176 312 C206 304 224 290 238 268" stroke="#e4584b" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="241" cy="264" r="7" fill="#f2c9a7"/>
+    <path d="M134 316 C122 332 120 346 124 358" stroke="#e4584b" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="125" cy="362" r="6.5" fill="#f2c9a7"/>
+    <path d="M133 272 C131 244 177 242 176 272 C177 281 177 288 173 293 C165 296 143 296 136 293 C132 288 132 281 133 272Z" fill="#0b1e55"/>
+    <rect x="146" y="278" width="16" height="22" rx="7" fill="#f2c9a7"/>
+    <circle cx="154" cy="272" r="19" fill="#f2c9a7"/>
+    <path d="M136 268 C138 249 170 247 172 268 C165 259 144 259 136 268Z" fill="#0b1e55"/>
+  </g>
+
+  <!-- gears -->
+  <g>
+    <circle cx="302" cy="444" r="26" stroke="#5fc6ec" stroke-width="9" stroke-dasharray="7.2 6.3"/>
+    <circle cx="302" cy="444" r="20" fill="#0a3f9a" stroke="#5fc6ec" stroke-width="2.5"/>
+    <circle cx="302" cy="444" r="7" fill="#5fc6ec"/>
+    <circle cx="350" cy="466" r="17" stroke="#3b9be0" stroke-width="7" stroke-dasharray="5.6 4.4"/>
+    <circle cx="350" cy="466" r="12.5" fill="#0a3f9a" stroke="#3b9be0" stroke-width="2"/>
+    <circle cx="350" cy="466" r="4.5" fill="#3b9be0"/>
+  </g>
+
+  <!-- man at a desk with a laptop -->
+  <g>
+    <rect x="404" y="428" width="162" height="11" rx="4" fill="#8fc0f0"/>
+    <rect x="418" y="439" width="9" height="46" fill="#5b9fe0"/><rect x="544" y="439" width="9" height="46" fill="#5b9fe0"/>
+    <rect x="552" y="372" width="10" height="74" rx="4" fill="#3b86d4"/>
+    <rect x="496" y="428" width="64" height="26" rx="6" fill="#1b2f73"/>
+    <rect x="530" y="342" width="52" height="92" rx="18" fill="#f5a43a"/>
+    <path d="M538 366 C520 380 506 394 500 410" stroke="#f5a43a" stroke-width="13" stroke-linecap="round"/>
+    <circle cx="498" cy="414" r="6.5" fill="#e9b996"/>
+    <rect x="548" y="318" width="14" height="22" rx="6" fill="#e9b996"/>
+    <circle cx="556" cy="314" r="18" fill="#e9b996"/>
+    <path d="M538 312 C538 290 574 290 574 312 C568 304 548 304 538 312Z" fill="#0b1e55"/>
+    <rect x="432" y="372" width="76" height="56" rx="6" fill="#12338a" stroke="#00BAF2" stroke-width="2"/>
+    <rect x="442" y="384" width="40" height="5" rx="2.5" fill="#5fc6ec"/>
+    <rect x="442" y="395" width="56" height="5" rx="2.5" fill="#3b86d4"/>
+    <rect x="442" y="406" width="30" height="5" rx="2.5" fill="#3b86d4"/>
+    <circle cx="492" cy="414" r="6" fill="#00BAF2"/><path d="M489.2 414 L491.4 416.4 L495 411.8" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M424 434 H514 L520 438 H418 Z" fill="#1b2f73"/>
+  </g>
+
+  <!-- sparkles -->
+  <g stroke="#00BAF2" stroke-width="2" stroke-linecap="round" stroke-opacity=".9">
+    <path d="M520 78 V94 M512 86 H528"/><path d="M92 92 V104 M86 98 H98"/><path d="M566 222 V232 M561 227 H571"/>
+  </g>
+  <g fill="#ffffff" fill-opacity=".85"><circle cx="470" cy="60" r="3"/><circle cx="34" cy="262" r="2.5"/><circle cx="574" cy="118" r="2.5"/><circle cx="214" cy="500" r="2.5"/></g>
+  <g fill="#00BAF2"><circle cx="20" cy="130" r="3"/><circle cx="586" cy="300" r="3"/></g>
+</svg>

@@ -29,7 +29,7 @@ from sarvam_conv_ai_sdk.messages.types import UserIdentifierType  # noqa: E402
 from sarvamai import SarvamAI  # noqa: E402
 from sqlmodel import Session  # noqa: E402
 
-from app import config, voice_agent  # noqa: E402
+from app import config, vcip, voice_agent  # noqa: E402
 from app.db import engine  # noqa: E402
 from app.models import Case  # noqa: E402
 
@@ -85,11 +85,13 @@ def synthesize(text: str) -> bytes:
     return pcm
 
 
-async def run(case_id: str, said: list[str], wait: float, mode: str) -> dict:
-    if not config.SARVAM_AGENT_ID or not config.SARVAM_AGENT_API_KEY:
-        raise SystemExit("Set SARVAM_AGENT_ID and SARVAM_API_KEY_NEW_FOR_VOICE in backend/.env")
+async def run(case_id: str, said: list[str], wait: float, mode: str, kind: str = "chase") -> dict:
+    app_id = config.SARVAM_VCIP_AGENT_ID if kind == "vcip" else config.SARVAM_AGENT_ID
+    if not app_id or not config.SARVAM_AGENT_API_KEY:
+        raise SystemExit("Set " + ("SARVAM_VCIP_AGENT_ID" if kind == "vcip" else "SARVAM_AGENT_ID") + " and SARVAM_API_KEY_NEW_FOR_VOICE in backend/.env")
     with Session(engine) as s:
-        ctx = voice_agent.context(s, s.get(Case, case_id))
+        case = s.get(Case, case_id)
+        ctx = vcip.context(s, case) if kind == "vcip" else voice_agent.context(s, case)
     phases: list[bytearray] = [bytearray()]       # agent audio per turn: phase 0 = greeting, i = reply to merchant line i
     rate = {"hz": 16000}
     text_turns: list[dict] = []
@@ -111,7 +113,7 @@ async def run(case_id: str, said: list[str], wait: float, mode: str) -> dict:
         events.append(getattr(ev.type, "value", str(ev.type)))
 
     cfg = InteractionConfig(
-        org_id=config.SARVAM_ORG_ID, workspace_id=config.SARVAM_WORKSPACE_ID, app_id=config.SARVAM_AGENT_ID,
+        org_id=config.SARVAM_ORG_ID, workspace_id=config.SARVAM_WORKSPACE_ID, app_id=app_id,
         user_identifier=f"probe-{case_id}", user_identifier_type=UserIdentifierType.CUSTOM,
         interaction_type=InteractionType.CALL if mode == "call" else InteractionType.CHAT, sample_rate=16000,
         agent_variables=ctx["agent_variables"], initial_language_name=ctx["initial_language_name"],
@@ -164,11 +166,12 @@ def main() -> None:
     ap.add_argument("--scenario", type=int, default=1, choices=sorted(SCENARIOS))
     ap.add_argument("--say", action="append", help="merchant line (repeatable); overrides --scenario")
     ap.add_argument("--mode", choices=["call", "chat"], default="call", help="session type the agent is deployed for (yours: call)")
+    ap.add_argument("--kind", choices=["chase", "vcip"], default="chase", help="which agent: the merchant follow-up agent or the V-CIP pre-interview agent")
     ap.add_argument("--wait", type=float, default=10.0, help="seconds to wait for the agent after each message")
     ap.add_argument("--record", action="store_true",
                     help="send the conversation to n8n (karyakarta-voice-result) so it is recorded on the case and stored in Cognee; labelled as a rehearsal")
     a = ap.parse_args()
-    result = asyncio.run(run(a.case_id, a.say or SCENARIOS[a.scenario], a.wait, a.mode))
+    result = asyncio.run(run(a.case_id, a.say or SCENARIOS[a.scenario], a.wait, a.mode, a.kind))
     print(json.dumps(result, ensure_ascii=False, indent=1))
     if a.record:
         record(a.case_id, result, None if a.say else a.scenario)

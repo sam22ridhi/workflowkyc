@@ -8,6 +8,7 @@ The result is POLLED (n8n calls attempt_status until the call ends), so no publi
 SARVAM_CALLBACK_URL is set, Sarvam is also given it as the call-completed webhook.
 Auth for all three is the header X-API-Key (the agent API key).
 """
+import json
 import re
 from datetime import datetime, timedelta, timezone
 
@@ -44,9 +45,9 @@ def mask(number: str) -> str:
     return number[:3] + "•" * max(len(number) - 6, 2) + number[-3:]
 
 
-def configured() -> str | None:
+def configured(app_id: str | None = None, app_name: str = "SARVAM_AGENT_ID") -> str | None:
     """None when everything needed to place a call is set, else the name of what is missing."""
-    for name, value in (("SARVAM_AGENT_ID", config.SARVAM_AGENT_ID), ("SARVAM_API_KEY_NEW_FOR_VOICE", config.SARVAM_AGENT_API_KEY),
+    for name, value in ((app_name, app_id or config.SARVAM_AGENT_ID), ("SARVAM_API_KEY_NEW_FOR_VOICE", config.SARVAM_AGENT_API_KEY),
                         ("SARVAM_CONNECTION_ID", config.SARVAM_CONNECTION_ID), ("SARVAM_AGENT_PHONE_NUMBER", config.SARVAM_AGENT_PHONE_NUMBER)):
         if not value:
             return name
@@ -73,15 +74,17 @@ def _explain(r: httpx.Response) -> str:
     return f"Sarvam refused the call (HTTP {r.status_code}): {detail}.{hint}"
 
 
-def place_call(to_number: str, agent_variables: dict, opening_line: str, language: str, case_id: str) -> dict:
-    """Start the outbound call. Returns {attempt_id, completion: 'poll' | 'webhook'}."""
-    missing = configured()
+def place_call(to_number: str, agent_variables: dict, opening_line: str, language: str, case_id: str,
+               app_id: str | None = None, app_version: int | None = None, app_name: str = "SARVAM_AGENT_ID") -> dict:
+    """Start the outbound call with the chase agent (default) or another agent (the V-CIP pre-interview agent).
+    Returns {attempt_id, completion: 'poll' | 'webhook'}."""
+    missing = configured(app_id, app_name)
     if missing:
         raise TelephonyError(f"Phone calling is not configured: {missing} is empty in backend/.env.")
     body = {
         "app_config": {
-            "app_id": config.SARVAM_AGENT_ID,
-            "app_version": config.SARVAM_AGENT_VERSION,
+            "app_id": app_id or config.SARVAM_AGENT_ID,
+            "app_version": app_version or config.SARVAM_AGENT_VERSION,
             "connection_config": {"connection_id": config.SARVAM_CONNECTION_ID, "agent_phone_number": config.SARVAM_AGENT_PHONE_NUMBER},
             "agent_variables": {k: str(v) for k, v in agent_variables.items()},
             "app_overrides": {"initial_bot_message": opening_line, "initial_language_name": language},
@@ -112,6 +115,50 @@ def _failure(item: dict) -> str | None:
     return None if reason.lower() in NO_FAILURE else reason
 
 
+FINISHED_STATUSES = {"failed", "no_answer", "no-answer", "busy", "unanswered", "cancelled", "canceled", "completed", "ended"}
+TWILIO_HINTS = {
+    21219: "Your Twilio account is a trial account, which can call only verified numbers. In the Twilio console add this number under "
+           "Verified Caller IDs (Phone Numbers > Manage > Verified Caller IDs), or upgrade the Twilio account.",
+    21215: "Twilio is not allowed to call this country yet. Enable it under Voice > Settings > Geo Permissions in the Twilio console.",
+    21216: "Twilio is not allowed to call this country yet. Enable it under Voice > Settings > Geo Permissions in the Twilio console.",
+    21408: "Twilio is not allowed to call this country yet. Enable it under Voice > Settings > Geo Permissions in the Twilio console.",
+}
+
+
+def _real(value):
+    """Sarvam fills missing ids with placeholders like 'NO_INTERACTION_ID'."""
+    text = str(value or "")
+    return None if not text or text.startswith("NO_") else text
+
+
+AGENT_NEVER_JOINED = (
+    "The call was placed, but Sarvam's agent never joined it: no conversation was created. If your phone rang and you heard an English "
+    "recorded message, that is Twilio's trial-account announcement. It waits for a keypress before connecting, and hangs up if none "
+    "comes. Press any key when you hear it, or upgrade the Twilio account to remove the announcement."
+)
+
+
+def _finished(item: dict) -> bool:
+    """A call that failed before it started has no end time, so the status must count too."""
+    return bool(item.get("end_datetime")) or str(item.get("connectivity_status") or "").strip().lower() in FINISHED_STATUSES
+
+
+def explain_failure(reason: str | None) -> str | None:
+    """'twilio: {"code":21219,"message":"..."}' -> a sentence with what to do about it."""
+    if not reason:
+        return None
+    m = re.search(r"twilio:\s*(\{.*\})", reason, re.S)
+    if not m:
+        return reason
+    try:
+        body = json.loads(m.group(1))
+    except ValueError:
+        return reason
+    code, message = body.get("code"), str(body.get("message") or "").strip()
+    hint = TWILIO_HINTS.get(code)
+    return f"Twilio refused the call (error {code}): {message}" + (f" {hint}" if hint else "")
+
+
 def _outcome(item: dict) -> str:
     text = " ".join([str(item.get("connectivity_status") or ""), str(item.get("status") or ""), _failure(item) or ""]).lower()
     if "no_answer" in text or "no answer" in text or "unanswered" in text or "not answered" in text:
@@ -123,7 +170,7 @@ def _outcome(item: dict) -> str:
     return "reached"
 
 
-def attempt_status(attempt_id: str) -> dict:
+def attempt_status(attempt_id: str, app_id: str | None = None) -> dict:
     """{state: 'pending'|'done', outcome, duration, interaction_id, failure_reason}. 'pending' until Sarvam reports an end time."""
     now = datetime.now(timezone.utc)
     params = {
@@ -132,7 +179,7 @@ def attempt_status(attempt_id: str) -> dict:
         "limit": 5,
         "filter_conditions": '[{"id":"a","field":"attempt_id","operator":"equals","value":"%s"}]' % attempt_id.replace('"', ""),
     }
-    url = ANALYTICS_URL.format(org=config.SARVAM_ORG_ID, ws=config.SARVAM_WORKSPACE_ID, app=config.SARVAM_AGENT_ID) + "/attempts"
+    url = ANALYTICS_URL.format(org=config.SARVAM_ORG_ID, ws=config.SARVAM_WORKSPACE_ID, app=app_id or config.SARVAM_AGENT_ID) + "/attempts"
     try:
         r = httpx.get(url, headers=_headers(), params=params, timeout=30)
     except httpx.HTTPError as e:
@@ -143,10 +190,14 @@ def attempt_status(attempt_id: str) -> dict:
     if not items:
         return {"state": "pending", "outcome": None, "note": "Sarvam has no record of this attempt yet."}
     item = items[0]
-    if not item.get("end_datetime"):
+    if not _finished(item):
         return {"state": "pending", "outcome": None, "note": "The call is still in progress."}
-    return {"state": "done", "outcome": _outcome(item), "duration": item.get("duration_in_seconds"),
-            "interaction_id": item.get("interaction_id"), "failure_reason": _failure(item),
+    outcome, reason = _outcome(item), explain_failure(_failure(item))
+    if outcome == "failed" and not reason and not _real(item.get("interaction_id")):
+        reason = AGENT_NEVER_JOINED                      # failed, no reason given, no conversation: the agent never got on the line
+    return {"state": "done", "outcome": outcome, "duration": item.get("duration_in_seconds"),
+            "interaction_id": _real(item.get("interaction_id")),
+            "failure_reason": reason,
             "messages": item.get("num_messages")}
 
 
@@ -172,9 +223,9 @@ def _turns(node) -> list[dict]:
     return []
 
 
-def transcript(interaction_id: str) -> list[dict]:
+def transcript(interaction_id: str, app_id: str | None = None) -> list[dict]:
     """[{role: 'agent'|'merchant', text}]. Empty if Sarvam has no transcript (call did not connect) or it cannot be read."""
-    url = ANALYTICS_URL.format(org=config.SARVAM_ORG_ID, ws=config.SARVAM_WORKSPACE_ID, app=config.SARVAM_AGENT_ID) + f"/transcripts/{interaction_id}"
+    url = ANALYTICS_URL.format(org=config.SARVAM_ORG_ID, ws=config.SARVAM_WORKSPACE_ID, app=app_id or config.SARVAM_AGENT_ID) + f"/transcripts/{interaction_id}"
     try:
         r = httpx.get(url, headers=_headers(), timeout=30)
     except httpx.HTTPError:

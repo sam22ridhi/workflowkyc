@@ -105,6 +105,14 @@ FSSAI_SCHEMA = _obj({
     "valid_until": _s("Expiry date, DD/MM/YYYY"),
 })
 
+ELECTRICITY_BILL_SCHEMA = _obj({
+    "consumer_name": _s("Name of the consumer exactly as printed"),
+    "consumer_number": _s("Consumer / account number"),
+    "service_address": _s("Service / supply address of the connection exactly as printed"),
+    "utility_name": _s("Name of the electricity distribution company"),
+    "bill_date": _s("Bill date, DD/MM/YYYY"),
+})
+
 SCHEMAS: dict[str, dict] = {
     "pan": PAN_SCHEMA,
     "gst": GST_SCHEMA,
@@ -114,6 +122,7 @@ SCHEMAS: dict[str, dict] = {
     "director_kyc": DIRECTOR_KYC_SCHEMA,
     "shareholding": SHAREHOLDING_SCHEMA,
     "fssai": FSSAI_SCHEMA,
+    "electricity_bill": ELECTRICITY_BILL_SCHEMA,
 }
 
 

@@ -26,9 +26,9 @@ interface AutoFilledCrmFormProps {
 }
 
 const SECTION_ICON: Record<string, { icon: typeof Building; tone: string }> = {
-  business: { icon: Building, tone: 'bg-indigo-50 text-indigo-700' },
+  business: { icon: Building, tone: 'bg-[#e6f7fc] text-[#002970]' },
   tax_bank: { icon: CreditCard, tone: 'bg-emerald-50 text-emerald-700' },
-  stakeholders: { icon: Users, tone: 'bg-purple-50 text-purple-700' },
+  stakeholders: { icon: Users, tone: 'bg-[#e6f7fc] text-[#002970]' },
 };
 
 export function AutoFilledCrmForm({
@@ -58,22 +58,22 @@ export function AutoFilledCrmForm({
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-purple-900 via-indigo-900 to-[#002970] text-white p-5 md:p-6 rounded-2xl shadow-sm border border-purple-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-[#001b4c] via-[#002970] to-[#002970] text-white p-5 md:p-6 rounded-2xl shadow-sm border border-[#00BAF2]/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-400/40 text-purple-300 flex items-center justify-center shrink-0">
-            <Sparkles size={22} className="text-purple-300 animate-pulse" />
+          <div className="w-10 h-10 rounded-xl bg-[#00BAF2]/20 border border-[#00BAF2]/40 text-[#7fdcf8] flex items-center justify-center shrink-0">
+            <Sparkles size={22} className="text-[#7fdcf8] animate-pulse" />
           </div>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-purple-200 bg-purple-800/60 px-2.5 py-0.5 rounded-full border border-purple-400/30">Zero Manual Data Entry</span>
-              {summary?.avg_confidence != null && <span className="text-xs text-purple-200/80 font-medium">Avg. extraction confidence {summary.avg_confidence}%</span>}
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-200 bg-[#002970]/60 px-2.5 py-0.5 rounded-full border border-[#00BAF2]/30">Zero Manual Data Entry</span>
+              {summary?.avg_confidence != null && <span className="text-xs text-[#bae6fd]/80 font-medium">Avg. extraction confidence {summary.avg_confidence}%</span>}
             </div>
             <h2 className="text-base md:text-lg font-extrabold text-white tracking-tight">
               {summary
                 ? `✨ Form ${summary.fill_percent}% auto-populated by Karyakarta Agent from ${summary.source_documents} source document${summary.source_documents === 1 ? '' : 's'}.`
                 : '✨ Karyakarta Agent is preparing the form…'}
             </h2>
-            <p className="text-xs text-purple-100/80 mt-0.5 leading-relaxed font-medium">
+            <p className="text-xs text-[#e0f2fe]/80 mt-0.5 leading-relaxed font-medium">
               Every value is extracted from the uploaded documents and cited to its source. Where two sources disagree, the field is flagged for you.
             </p>
           </div>
@@ -172,10 +172,10 @@ function AiField({
           onClick={() => canJump && onViewEvidence!(field.doc_id!, field.field!)}
           title={canJump ? 'Open the source document with this field highlighted' : undefined}
           className={`text-[9px] font-semibold px-1.5 rounded border shrink-0 inline-flex items-center gap-1 ${
-            missing ? 'text-slate-500 bg-slate-50 border-slate-200' : field.overridden ? 'text-amber-800 bg-amber-50 border-amber-300' : 'text-purple-700 bg-purple-50 border-purple-200 hover:bg-purple-100'
+            missing ? 'text-slate-500 bg-slate-50 border-slate-200' : field.overridden ? 'text-amber-800 bg-amber-50 border-amber-300' : 'text-[#002970] bg-[#e6f7fc] border-[#cfe9fc] hover:bg-[#d6f2fa]'
           }`}
         >
-          {canJump ? <FileSearch size={9} /> : <Sparkles size={9} className="text-purple-600" />}
+          {canJump ? <FileSearch size={9} /> : <Sparkles size={9} className="text-[#0099cc]" />}
           {field.source}
         </button>
       </div>
@@ -191,10 +191,10 @@ function AiField({
             editable ? 'bg-white border-2 border-amber-400 text-slate-900 shadow-2xs'
               : missing ? 'bg-slate-50 border border-dashed border-slate-300 text-slate-500 pl-8'
               : conflict ? 'bg-amber-50/50 border border-amber-300 text-slate-900 font-semibold pl-8'
-              : 'bg-purple-50/20 border border-purple-200/90 text-slate-900 font-semibold pl-8 focus:border-purple-400'
+              : 'bg-[#e6f7fc]/20 border border-[#cfe9fc]/90 text-slate-900 font-semibold pl-8 focus:border-[#00BAF2]'
           }`}
         />
-        {!editable && <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-purple-500"><Sparkles size={13} /></div>}
+        {!editable && <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[#0099cc]"><Sparkles size={13} /></div>}
         {saving && <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-400" />}
       </div>
       {conflict && <span className="text-[10px] text-amber-700 font-bold block mt-0.5">⚠️ Conflict: {field.conflict_note}</span>}

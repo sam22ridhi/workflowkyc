@@ -51,6 +51,13 @@ copy .env.example .env        &REM then fill in SARVAM_API_KEY and COGNEE_API_KE
 | `SARVAM_CONNECTION_ID`, `SARVAM_AGENT_PHONE_NUMBER` | | The connected Twilio connection and the number the agent calls from (E.164). Required to place calls. |
 | `SARVAM_AGENT_VERSION` | `1` | Version of the agent to call with. A wrong value shows up as a Sarvam 404 on the case timeline. |
 | `SARVAM_CALLBACK_URL` | | Optional public URL for Sarvam's call-completed webhook. Not needed: results are polled. |
+| `PUBLIC_APP_URL` | `http://localhost:5173` | Address used in the merchant's shop-verification link. A phone camera and GPS need **https**, so for a phone test use a tunnel address here and run the frontend with `VITE_API_URL=` (empty, so `/api` goes through the Vite proxy). |
+| `N8N_CPV_WEBHOOK_URL` | | `http://localhost:5678/webhook/karyakarta-cpv-start`: n8n workflow for Drishti. Empty: the analysis runs inside the backend and nothing is stored in Cognee. |
+| `CPV_RADIUS_M`, `CPV_MAX_ACCURACY_M`, `CPV_LINK_HOURS`, `CPV_MAX_CLOCK_SKEW_S` | `100`, `100`, `24`, `120` | Drishti limits: distance to the address, worst GPS accuracy accepted (raise it for a laptop demo), link lifetime, allowed clock difference. |
+| `CPV_ALLOW_DEMO_REFERENCE` | `false` | `true` lets the KAM set a labelled demo reference point instead of geocoding the address (demo only). |
+| `SARVAM_VCIP_AGENT_ID`, `SARVAM_VCIP_AGENT_VERSION` | | The second Sarvam agent for the V-CIP pre-interview. Setup: [`voice/SARVAM_VCIP_AGENT_SETUP.md`](voice/SARVAM_VCIP_AGENT_SETUP.md). Empty: the V-CIP call returns 422. |
+| `N8N_SETTLEMENT_WEBHOOK_URL` | | `http://localhost:5678/webhook/karyakarta-settlement-scan`: n8n workflow for the Settlement Agent. Empty: the backend runs the same chain itself. Demo controls (spike / reset) need `CPV_ALLOW_DEMO_REFERENCE=true`. |
+| `FINOPS_SEED_DEMO` | `true` | Creates the synthetic Stage-10 demo merchant KYB-20820 with its 32-day ledger at startup. `python -m seed.seed_settlements` also stores its profile in Cognee. |
 | `N8N_VOICE_WEBHOOK_URL` | | `http://localhost:5678/webhook/karyakarta-voice-chase`: n8n workflow that places the call. Empty: the timeline says "Voice call not placed". |
 
 Frontend: `VITE_API_URL` (default `http://localhost:8765`) in `workflowkyc/.env.local` if the backend runs elsewhere.
@@ -108,6 +115,11 @@ shows `failed` but everything else works.
 | `POST /cases/{id}/action` | voice / request / approve / submit_to_compliance / send_back / compliance_approve. **Role and stage guarded**: the agent and merchant get 403 on decisions; Compliance acts only at stage 5 (after the KAM submits); approval needs finished verification |
 | `GET /cases/{id}/events`, `GET /events` | Server-sent events (audit trail); `?after=<id>` to replay |
 | `GET /mock-registry/{id}` | The MOCK MCA / GST / penny-drop record used by the checks |
+| `GET /cpv/{token}`, `POST /cpv/{token}/capture`, `POST /cpv/{token}/submit` | Drishti, public with the one-time token: capture state, one live-camera frame, send for verification |
+| `GET /cases/{id}/cpv`, `POST …/cpv/link`, `POST …/cpv/analyse`, `GET …/cpv/images/{kind}`, `GET …/cpv/memory-summary`, `POST …/cpv/memory/result`, `POST …/cpv/demo-reference` | Verification state, new link, run analysis, evidence photos, Cognee summary and report-back, demo reference (off by default) |
+| `GET /cases/{id}/settlements`, `POST …/settlements/scan` (+ the n8n steps `monitor`, `reconcile`, `investigate`, demo `spike` / `reset`) | Settlement Agent (see `docs/06_SETTLEMENT_AGENT.md`); actions `inv_resolve` / `inv_dismiss` are KAM-only |
+| `DELETE /documents/{id}?actor=kam`, `POST /cases/{id}/demo/reset` | KAM deletes a submitted file (before Compliance); demo-only case reset (needs `CPV_ALLOW_DEMO_REFERENCE=true`) |
+| `GET /cases/{id}/vcip` | V-CIP record; actions `cpv_approve`, `cpv_retake`, `vcip_call`, `vcip_signoff` go through `POST /cases/{id}/action`; voice endpoints take `kind=vcip` |
 | `GET /cases/{id}/voice-chase/context`, `POST /cases/{id}/voice-chase/result` | Voice agent variables + opening line (merchant-fixable items only); call outcome (stored as a call record, shown on the case) |
 | `POST /cases/{id}/memory/items` | n8n reports the dataset's `{id, name}` items so answers can name their source documents |
 | `POST /cases/{id}/voice-chase/call`, `GET /cases/{id}/voice-chase/attempts/{attempt_id}` | Place the outbound call through Sarvam; poll its status and transcript (called by n8n) |
@@ -125,10 +137,10 @@ shows `failed` but everything else works.
   structured summary of fields and checks; cognify once per batch. Cognee answers questions; it never decides pass/fail.
 
 ## 6. Tests
-Backend: `.venv\Scripts\python.exe -m pytest -q` (81 tests): validators, schemas, box location on real Sarvam fixtures,
+Backend: `.venv\Scripts\python.exe -m pytest -q` (172 tests): validators, schemas, box location on real Sarvam fixtures,
 cross-checks on the planted issues, CRM form, memory (fake store), Cognee outage, seeded-case coherence, and an
 end-to-end integration test on the 8 real PDFs with recorded Sarvam responses and a fake Cognee.
-Frontend: `cd workflowkyc && npm test` (24 render tests, jsdom): the dashboard, case overview, upload screen and live
+Frontend: `cd workflowkyc && npm test` (45 tests, jsdom): the dashboard, case overview, upload screen and live
 hooks rendered against real backend responses captured in `src/test/fixtures/`. Re-capture them after changing the API
 (start the backend after `seed.bat --reset --hero-docs`, then `curl` the endpoints listed in `src/test/ui.test.tsx`).
 Neither suite calls Sarvam or Cognee. The PDF viewer (pdf.js) is not exercised in jsdom; check it in a browser.
@@ -154,6 +166,9 @@ Neither suite calls Sarvam or Cognee. The PDF viewer (pdf.js) is not exercised i
 | "Voice call not placed: Sarvam refused the call (HTTP 404)" | Check `SARVAM_AGENT_ID`, `SARVAM_AGENT_VERSION` (try the agent's latest published version) and `SARVAM_CONNECTION_ID`. |
 | "Voice call not placed: … (HTTP 4xx)" about the number | The number must be international (+91…). A Twilio trial account can usually call only verified numbers, and the destination country must be enabled for calling. |
 | A voice call is placed but nothing appears on the case | n8n polls every 15 s for up to 15 minutes. Check the *Karyakarta - Voice chase* execution in n8n and the attempt in the Sarvam console. |
+| Shop-verification page says the camera or location is blocked | Browsers allow them only on https or localhost. Use an https tunnel for a phone and allow camera and location for the site. |
+| Drishti says the address could not be located | OpenStreetMap could not place the address. With `CPV_ALLOW_DEMO_REFERENCE=true` the KAM can set a labelled demo reference point; otherwise the KAM reviews the case. |
+| Drishti rejects a laptop photo for GPS accuracy | Laptops report coarse positions. Raise `CPV_MAX_ACCURACY_M` for the demo only. |
 | Port 8000 errors | Use 8765 (`run.bat`), and `VITE_API_URL` if you change it. |
 | `UnicodeEncodeError` in a Windows console | Set `PYTHONIOENCODING=utf-8`; the seed script already does this for its own output. |
 | Uploaded file type wrong (e.g. PAN vs GST) | Type comes from the filename, slot, or OCR keywords; fix with `POST /api/documents/{id}/type` and re-extract. |

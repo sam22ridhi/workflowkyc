@@ -12,6 +12,7 @@ os.environ["COGNEE_API_KEY"] = ""
 os.environ["DEMO_MODE"] = "false"
 os.environ["SARVAM_API_KEY"] = ""      # tests must never reach the real Sarvam API
 os.environ["PIPELINE_AUTORUN"] = "false"
+os.environ["FINOPS_SEED_DEMO"] = "false"   # the settlement demo merchant is created explicitly by its own tests
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pytest  # noqa: E402

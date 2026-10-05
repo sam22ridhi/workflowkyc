@@ -14,26 +14,31 @@ import {
   FileSearch,
   Undo2,
 } from 'lucide-react';
+import { Activity, RotateCcw, Trash2 } from 'lucide-react';
 import { PdfEvidenceViewer, type EvidenceFocus } from '@/components/kam/PdfEvidenceViewer';
 import { AutoFilledCrmForm } from '@/components/kam/AutoFilledCrmForm';
 import { AskCaseCard } from '@/components/kam/AskCaseCard';
+import { SettlementsTab } from '@/components/kam/SettlementsTab';
 import { VoiceCallsCard } from '@/components/kam/VoiceCallsCard';
+import { DrishtiCard } from '@/components/kam/DrishtiCard';
+import { VcipCard } from '@/components/kam/VcipCard';
 import { VoiceChasePanel, type ChaseChannel } from '@/components/kam/VoiceChasePanel';
 import type { MerchantCase } from '@/types/case';
-import { useLiveResource, type CaseCheck, type CrmForm } from '@/services/api';
+import { deleteDocument, resetDemoCase, useLiveResource, type CaseCheck, type CrmForm } from '@/services/api';
 
-export type CaseDetailTab = 'overview' | 'evidence' | 'crm-form';
-type Action = 'request' | 'voice' | 'approve' | 'send_back' | 'compliance_approve';
+export type CaseDetailTab = 'overview' | 'evidence' | 'crm-form' | 'settlements';
+type Action = 'request' | 'voice' | 'approve' | 'send_back' | 'compliance_approve' | 'cpv_approve' | 'cpv_retake' | 'vcip_call' | 'vcip_signoff' | 'inv_resolve' | 'inv_dismiss';
 
 interface CaseDetailOverviewProps {
   caseData: MerchantCase;
   onBack: () => void;
   onSwitchRole: () => void;
+  onOpenAsMerchant?: () => void;
   onAction: (action: Action, channel?: string, phone?: string) => void | Promise<void>;
   isCompliancePersona?: boolean;
 }
 
-const FALLBACK_STAGES = ['Invited', 'Docs Upload', 'AI Verifying', 'KAM Review', 'Checker (Compliance)', 'Bank Settlement Test', 'e-Agreement Sign', 'Live Unlimited']
+const FALLBACK_STAGES = ['Invited', 'Docs Upload', 'AI Verifying', 'KAM Review', 'Checker (Compliance)', 'Contact Point Verification', 'V-CIP Sign-off', 'Bank Settlement Test', 'e-Agreement Sign', 'Live Unlimited']
   .map((label, i) => ({ id: i + 1, label, status: (i < 3 ? 'done' : i === 3 ? 'current' : 'upcoming') as 'done' | 'current' | 'upcoming' }));
 
 const ROUTE_CHIP = {
@@ -48,8 +53,10 @@ const ROUTE_TEXT = {
   ESCALATE: 'ESCALATE · needs human judgement',
 } as const;
 
-export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePersona = false }: CaseDetailOverviewProps) {
-  const [activeTab, setActiveTab] = useState<CaseDetailTab>('overview');
+export function CaseDetailOverview({ caseData, onBack, onAction, onOpenAsMerchant, isCompliancePersona = false }: CaseDetailOverviewProps) {
+  const isInvestigation = caseData.kind === 'investigation';
+  const showSettlements = isInvestigation || (caseData.stage ?? 0) >= 10;       // post-onboarding: a live merchant, or a settlement investigation
+  const [activeTab, setActiveTab] = useState<CaseDetailTab>(isInvestigation ? 'settlements' : 'overview');
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [toast, setToast] = useState<{ text: string; error?: boolean } | null>(null);
   const [evidenceFocus, setEvidenceFocus] = useState<EvidenceFocus | null>(null);
@@ -67,6 +74,8 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
   const initials = caseData.merchantName.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
   const chaseRequest = askIssues[0]?.label ?? missing[0]?.label ?? 'Missing documents';
 
+  const canEditFiles = !isCompliancePersona && !isInvestigation && (caseData.stage ?? 0) <= 4;     // files lock once the case is with Compliance
+
   const showToast = (text: string, error = false) => {
     setToast({ text, error });
     window.setTimeout(() => setToast(null), 4500);
@@ -78,6 +87,29 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
       showToast(success);
     } catch (e) {
       showToast(`Action failed: ${e instanceof Error ? e.message : String(e)}`, true);
+    }
+  };
+
+  const removeFile = async (docId: string, label: string) => {
+    if (!window.confirm(`Delete ${label} from this case? The file is removed, the checks are re-run on what is left, and its copy in the merchant memory is removed.`)) return;
+    try {
+      const r = await deleteDocument(docId);
+      showToast(`Deleted ${r.deleted}. ${r.outcome}`);
+      void crm.reload();
+    } catch (e) {
+      showToast(`Could not delete: ${e instanceof Error ? e.message : String(e)}`, true);
+    }
+  };
+
+  const resetCase = async () => {
+    if (!window.confirm('Demo reset: remove every file, check, call and verification from this case and clear its merchant memory, so the demo can be run again?')) return;
+    try {
+      await resetDemoCase(caseData.id);
+      setActiveTab('overview');
+      showToast('Case reset to its starting state.');
+      void crm.reload();
+    } catch (e) {
+      showToast(`Could not reset: ${e instanceof Error ? e.message : String(e)}`, true);
     }
   };
 
@@ -115,6 +147,16 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
           <span>Back to All Cases</span>
         </button>
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+          {onOpenAsMerchant && (
+            <button onClick={onOpenAsMerchant} className="px-3 py-1.5 rounded-lg bg-[#e6f7fc] border border-[#cfe9fc] text-[#002970] font-bold hover:bg-[#d6f2fa] mr-2">
+              View as merchant
+            </button>
+          )}
+          {canEditFiles && (
+            <button onClick={() => void resetCase()} className="px-3 py-1.5 rounded-lg bg-white border border-dashed border-slate-300 text-slate-600 font-bold hover:bg-slate-50 mr-2 inline-flex items-center gap-1.5" title="Demo only: put this case back to its starting state">
+              <RotateCcw size={12} /> Reset demo case
+            </button>
+          )}
           <span>Case ID:</span>
           <span className="font-mono font-bold text-[#002970] bg-[#e6f7fc] px-2 py-0.5 rounded border border-[#cfe9fc]">{caseData.id}</span>
         </div>
@@ -146,16 +188,23 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
               <Mic size={14} className="text-[#00BAF2]" />
               <span>Voice Chase</span>
             </button>
-            {isCompliancePersona ? (
+            {isInvestigation ? (
+              !isCompliancePersona && caseData.status === 'needs_attention' && (
+                <>
+                  <button onClick={() => void run('inv_dismiss', 'Investigation dismissed as a false positive.')} className="px-3.5 py-2 rounded-xl bg-white border border-slate-300 text-slate-800 hover:bg-slate-50 text-xs font-bold transition-all">Dismiss (false positive)</button>
+                  <button onClick={() => void run('inv_resolve', 'Investigation resolved.')} className="px-4 py-2 rounded-xl bg-[#002970] hover:bg-[#001b4c] text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5"><Check size={14} className="text-[#00BAF2]" /><span>Resolve</span></button>
+                </>
+              )
+            ) : (showSettlements ? null : isCompliancePersona) ? (
               <>
                 <button onClick={() => void run('send_back', 'Sent back to the KAM.')} className="px-3.5 py-2 rounded-xl bg-white border border-amber-300 text-amber-900 hover:bg-amber-50 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5">
                   <Undo2 size={14} /> <span>Send back</span>
                 </button>
-                <button onClick={() => void run('compliance_approve', 'Compliance approved: moving to the bank settlement test.')} className="px-4 py-2 rounded-xl bg-[#002970] hover:bg-[#001b4c] text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5">
+                <button onClick={() => void run('compliance_approve', 'Compliance approved. Drishti opens the shop verification and the merchant receives a secure link.')} className="px-4 py-2 rounded-xl bg-[#002970] hover:bg-[#001b4c] text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5">
                   <Check size={14} className="text-[#00BAF2]" /> <span>Approve (Compliance)</span>
                 </button>
               </>
-            ) : (
+            ) : showSettlements ? null : (
               <button onClick={handleApprove} className="px-4 py-2 rounded-xl bg-[#002970] hover:bg-[#001b4c] text-white text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5">
                 <Check size={14} className="text-[#00BAF2]" />
                 <span>Approve &amp; Forward</span>
@@ -166,10 +215,10 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
 
         <div className="pt-4 border-t border-slate-100">
           <div className="flex items-center justify-between mb-3 text-xs font-bold text-slate-700">
-            <span className="text-[11px] uppercase tracking-wider text-slate-400">8-Stage Corporate Lifecycle</span>
-            <span className="text-[#002970]">Stage {current.id} of 8: <strong className="text-[#00BAF2]">{current.label}</strong></span>
+            <span className="text-[11px] uppercase tracking-wider text-slate-400">{stages.length}-Stage Corporate Lifecycle</span>
+            <span className="text-[#002970]">Stage {current.id} of {stages.length}: <strong className="text-[#00BAF2]">{current.label}</strong></span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-2">
             {stages.map((stage) => {
               const isDone = stage.status === 'done';
               const isCurrent = stage.status === 'current';
@@ -195,14 +244,24 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
         <button onClick={() => setActiveTab('overview')} className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'overview' ? 'bg-[#002970] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}>
           <Layers size={14} /><span>Overview &amp; Checklist</span>
         </button>
+        {!isInvestigation && (
+          <>
         <button onClick={() => setActiveTab('evidence')} className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'evidence' ? 'bg-[#002970] text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}>
           <FileText size={14} /><span>Interactive PDF Evidence</span>
           {failing.length > 0 && <span className="w-2 h-2 rounded-full bg-amber-400" />}
         </button>
-        <button onClick={() => setActiveTab('crm-form')} className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'crm-form' ? 'bg-purple-900 text-white shadow-2xs' : 'text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200'}`}>
-          <Sparkles size={14} className="text-purple-500" /><span>Auto-Filled CRM Form (Magic)</span>
-          <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-purple-600 text-white">{crmSummary ? `${crmSummary.fill_percent}% Filled` : '…'}</span>
+        <button onClick={() => setActiveTab('crm-form')} className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'crm-form' ? 'bg-[#002970] text-white shadow-2xs' : 'text-[#002970] bg-[#e6f7fc] hover:bg-[#d6f2fa] border border-[#cfe9fc]'}`}>
+          <Sparkles size={14} className="text-[#0099cc]" /><span>MAF (Merchant Application Form)</span>
+          <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-[#00BAF2] text-[#002970]">{crmSummary ? `${crmSummary.fill_percent}% Filled` : '…'}</span>
         </button>
+          </>
+        )}
+        {showSettlements && (
+          <button onClick={() => setActiveTab('settlements')} className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === 'settlements' ? 'bg-[#002970] text-white shadow-2xs' : 'text-slate-600 hover:bg-slate-100'}`}>
+            <Activity size={14} className={activeTab === 'settlements' ? 'text-[#00BAF2]' : 'text-slate-400'} /><span>Settlements</span>
+            {isInvestigation && <span className="w-2 h-2 rounded-full bg-rose-500" />}
+          </button>
+        )}
       </div>
 
       {activeTab === 'overview' && (
@@ -229,7 +288,7 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
           <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Cross-document checks</h3>
+                <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">{isInvestigation ? 'Exception cards (rule-based signals)' : 'Cross-document checks'}</h3>
                 <p className="text-[11px] text-slate-500 font-medium">Rule-based, repeatable. Each result lists its evidence; click to open the source.</p>
               </div>
               <span className="text-[11px] font-bold text-slate-500">{checks.filter((c) => c.status === 'pass').length}/{checks.length} passed</span>
@@ -238,8 +297,8 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
             {checks.map((c) => <CheckRow key={c.id} check={c} onOpen={openEvidence} />)}
           </div>
 
-          {/* Two-column checklist */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Two-column checklist (onboarding cases only) */}
+          {!isInvestigation && <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-2xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
@@ -260,6 +319,7 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
                       source={doc?.sourceLabel ?? ''}
                       status="completed"
                       onViewEvidence={u.doc_id ? () => openEvidence(u.doc_id) : undefined}
+                      onDelete={canEditFiles && u.doc_id ? () => void removeFile(u.doc_id as string, u.label) : undefined}
                     />
                   );
                 })}
@@ -293,7 +353,19 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
                 </div>
               )}
             </div>
-          </div>
+          </div>}
+
+          {!isInvestigation && caseData.cpv && <DrishtiCard caseId={caseData.id} cpv={caseData.cpv} isCompliancePersona={isCompliancePersona} onAct={(action, success) => void run(action, success)} />}
+          {!isInvestigation && caseData.vcip && (
+            <VcipCard
+              caseId={caseData.id}
+              vcip={caseData.vcip}
+              defaultPhone={caseData.vcip.contactPhone ?? caseData.contactPhone ?? ''}
+              isCompliancePersona={isCompliancePersona}
+              onCall={async (phone) => { await onAction('vcip_call', undefined, phone); showToast('Calling for the V-CIP pre-interview. The transcript appears here when it ends.'); }}
+              onSignOff={async () => { await onAction('vcip_signoff'); showToast('V-CIP signed off. The case moves to the bank settlement test.'); }}
+            />
+          )}
 
           <AskCaseCard caseId={caseData.id} graphStatus={caseData.graphStatus ?? 'none'} onOpenSource={(docId) => openEvidence(docId)} />
 
@@ -316,6 +388,8 @@ export function CaseDetailOverview({ caseData, onBack, onAction, isCompliancePer
           </div>
         </div>
       )}
+
+      {activeTab === 'settlements' && showSettlements && <SettlementsTab caseId={caseData.id} onToast={showToast} />}
 
       {activeTab === 'evidence' && <PdfEvidenceViewer caseId={caseData.id} focus={evidenceFocus} />}
 
@@ -388,8 +462,8 @@ function CheckRow({ check, onOpen }: { check: CaseCheck; onOpen: (docId: string 
 }
 
 function ChecklistItem({
-  title, subtitle, source, status, onViewEvidence, onChase,
-}: { title: string; subtitle: string; source: string; status: 'completed' | 'action-required'; onViewEvidence?: () => void; onChase?: () => void }) {
+  title, subtitle, source, status, onViewEvidence, onChase, onDelete,
+}: { title: string; subtitle: string; source: string; status: 'completed' | 'action-required'; onViewEvidence?: () => void; onChase?: () => void; onDelete?: () => void }) {
   const isComplete = status === 'completed';
   return (
     <div className={`p-3.5 rounded-xl border transition-all flex items-start justify-between gap-3 ${isComplete ? 'bg-slate-50/50 border-slate-200 hover:border-slate-300' : 'bg-white border-amber-200 shadow-2xs hover:border-amber-300'}`}>
@@ -402,6 +476,7 @@ function ChecklistItem({
         </div>
       </div>
       <div className="shrink-0 flex items-center gap-1.5 self-center">
+        {onDelete && <button onClick={onDelete} aria-label={`Delete ${title}`} title="Delete this file (demo: so it can be uploaded again)" className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-200 transition-colors"><Trash2 size={14} /></button>}
         {onViewEvidence && <button onClick={onViewEvidence} className="px-2.5 py-1 text-[11px] font-bold text-[#002970] bg-[#e6f7fc] hover:bg-[#d6f2fa] rounded-lg border border-[#cfe9fc] transition-colors">Evidence →</button>}
         {onChase && <button onClick={onChase} className="px-2.5 py-1 text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-lg border border-amber-300 transition-colors">Chase</button>}
       </div>

@@ -1,0 +1,566 @@
+{
+  "id": "kkCpv00000000001",
+  "name": "Karyakarta - Contact point verification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "karyakarta-cpv-start",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "3e98d138-d920-5c39-8c8c-a95e4b7d90db",
+      "name": "Verification opened",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        120
+      ],
+      "webhookId": "karyakarta-cpv-start"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bd315cdf-5ab2-5eb5-8cda-f50e89d377f5",
+              "name": "backend_url",
+              "value": "http://host.docker.internal:8765",
+              "type": "string"
+            },
+            {
+              "id": "bb626c49-f8fa-575e-ad6e-30c8679225eb",
+              "name": "case_id",
+              "value": "={{ $json.body.case_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1b002abd-5989-535b-a061-21ba42d23a5d",
+      "name": "Settings (open)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings (open)').first().json.backend_url }}/api/cases/{{ $('Settings (open)').first().json.case_id }}/cpv/link",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "449ec111-42d5-5239-85c5-5ea0b19d5b18",
+      "name": "Create secure capture link (Drishti)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f668f3db-acdb-50ec-aaae-b0fb35225c84",
+              "name": "case_id",
+              "value": "={{ $('Settings (open)').first().json.case_id }}",
+              "type": "string"
+            },
+            {
+              "id": "3696f048-2267-5cb4-a860-8f9d31e7b60d",
+              "name": "status",
+              "value": "={{ $json.data.status }}",
+              "type": "string"
+            },
+            {
+              "id": "564b49d3-e2c8-5fda-996e-28bdbef83b09",
+              "name": "link",
+              "value": "={{ $json.data.link }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "128277ad-8a65-52c5-b20c-37162542fbd3",
+      "name": "Link ready in the AI Communication Center",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "karyakarta-cpv-captured",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "f5ce0100-6f59-50c2-924e-6f0e8f8208a6",
+      "name": "Photos submitted",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        420
+      ],
+      "webhookId": "karyakarta-cpv-captured"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bd788b1b-7411-58c2-99dc-c43393d0d94c",
+              "name": "backend_url",
+              "value": "http://host.docker.internal:8765",
+              "type": "string"
+            },
+            {
+              "id": "058f1342-e68c-57d1-866b-461207e873b2",
+              "name": "case_id",
+              "value": "={{ $json.body.case_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "35403ecc-f38c-52fc-9c74-0ff4711b91cc",
+      "name": "Settings (captured)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings (captured)').first().json.backend_url }}/api/cases/{{ $('Settings (captured)').first().json.case_id }}/cpv/analyse",
+        "options": {
+          "timeout": 240000
+        }
+      },
+      "id": "dcfd19ed-fbfa-581d-84f0-c81b04544057",
+      "name": "Drishti: analyse the shop",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        420
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ca38d2b5-58b7-58eb-a747-866b5723bc32",
+              "leftValue": "={{ $json.data && $json.data.status === 'verified' }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "02805369-5c51-54bc-b808-b86c3bbf75e3",
+      "name": "Verified by Drishti?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2ca496d2-4859-548d-b93a-f875a21cfaf2",
+              "name": "verdict",
+              "value": "CPV_VERIFIED",
+              "type": "string"
+            },
+            {
+              "id": "643053d8-8b44-5b42-aba0-9834df3d7e5c",
+              "name": "next",
+              "value": "V-CIP pre-interview and sign-off",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0fcfbfd9-01a6-546a-ab43-f8b8228349bb",
+      "name": "CPV_VERIFIED: case moves to V-CIP",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef2d3d97-8df6-533e-b960-442147e68753",
+              "name": "verdict",
+              "value": "NEEDS_REVIEW",
+              "type": "string"
+            },
+            {
+              "id": "3e533907-df47-5689-80c4-c1e0d5cdce5a",
+              "name": "next",
+              "value": "KAM reviews the evidence: approve or ask for new photos",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cabac7a7-7cc4-5e2e-a000-f13f275a70a9",
+      "name": "NEEDS_REVIEW: a person decides",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        900,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Settings (captured)').first().json.backend_url }}/api/cases/{{ $('Settings (captured)').first().json.case_id }}/cpv/memory-summary",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "df09e7e9-a1dc-546a-99a9-4edd0fe44ee7",
+      "name": "Get verification memory summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1140,
+        420
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "memory",
+        "operation": "remember",
+        "rememberInputType": "text",
+        "rememberText": [
+          "={{ $json.data.text }}"
+        ],
+        "rememberDatasetName": "={{ $json.data.dataset }}",
+        "rememberAdditionalFields": {
+          "fileNamePrefix": "={{ $json.data.file_prefix }}",
+          "runInBackground": true
+        }
+      },
+      "id": "19800a6d-5c6d-51e6-8976-9cb4c0a8909a",
+      "name": "Cognee: store verification evidence",
+      "type": "n8n-nodes-cognee.cognee",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        420
+      ],
+      "credentials": {
+        "cogneeApi": {
+          "id": "kkCogneeCloud01",
+          "name": "Cognee Cloud (Karyakarta)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings (captured)').first().json.backend_url }}/api/cases/{{ $('Settings (captured)').first().json.case_id }}/cpv/memory/result",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.error ? { status: 'failed', error: String($json.error.message || $json.error).slice(0, 900) } : { status: 'stored' }) }}"
+      },
+      "id": "299b3fed-719a-5e70-8ab5-fad0a5a11c0c",
+      "name": "Report evidence stored",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1620,
+        420
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings (captured)').first().json.backend_url }}/api/cases/{{ $('Settings (captured)').first().json.case_id }}/memory/graph-start",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "bf4f9546-3656-5a14-8466-b53dd847f119",
+      "name": "Mark graph building",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1860,
+        420
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "cognify",
+        "operation": "cognify",
+        "datasets": [
+          "={{ $('Get verification memory summary').first().json.data.dataset }}"
+        ],
+        "runInBackground": false,
+        "cognifyAdditionalOptions": {}
+      },
+      "id": "afa81964-80c8-5eed-8b9c-dec9a184cf11",
+      "name": "Cognee: refresh knowledge graph",
+      "type": "n8n-nodes-cognee.cognee",
+      "typeVersion": 1,
+      "position": [
+        2100,
+        420
+      ],
+      "credentials": {
+        "cogneeApi": {
+          "id": "kkCogneeCloud01",
+          "name": "Cognee Cloud (Karyakarta)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Settings (captured)').first().json.backend_url }}/api/cases/{{ $('Settings (captured)').first().json.case_id }}/memory/graph-result",
+        "options": {
+          "timeout": 30000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(($json.error || JSON.stringify($json).includes('Errored')) ? { status: 'failed', detail: String(($json.error && ($json.error.message || $json.error)) || 'cognify pipeline errored').slice(0, 900) } : { status: 'completed', detail: 'cognify completed' }) }}"
+      },
+      "id": "f4c48937-b658-5081-beb7-6f1e4a10fbec",
+      "name": "Report graph result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2340,
+        420
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Verification opened": {
+      "main": [
+        [
+          {
+            "node": "Settings (open)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings (open)": {
+      "main": [
+        [
+          {
+            "node": "Create secure capture link (Drishti)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create secure capture link (Drishti)": {
+      "main": [
+        [
+          {
+            "node": "Link ready in the AI Communication Center",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Photos submitted": {
+      "main": [
+        [
+          {
+            "node": "Settings (captured)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings (captured)": {
+      "main": [
+        [
+          {
+            "node": "Drishti: analyse the shop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Drishti: analyse the shop": {
+      "main": [
+        [
+          {
+            "node": "Verified by Drishti?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verified by Drishti?": {
+      "main": [
+        [
+          {
+            "node": "CPV_VERIFIED: case moves to V-CIP",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NEEDS_REVIEW: a person decides",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CPV_VERIFIED: case moves to V-CIP": {
+      "main": [
+        [
+          {
+            "node": "Get verification memory summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NEEDS_REVIEW: a person decides": {
+      "main": [
+        [
+          {
+            "node": "Get verification memory summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get verification memory summary": {
+      "main": [
+        [
+          {
+            "node": "Cognee: store verification evidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cognee: store verification evidence": {
+      "main": [
+        [
+          {
+            "node": "Report evidence stored",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Report evidence stored": {
+      "main": [
+        [
+          {
+            "node": "Mark graph building",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark graph building": {
+      "main": [
+        [
+          {
+            "node": "Cognee: refresh knowledge graph",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cognee: refresh knowledge graph": {
+      "main": [
+        [
+          {
+            "node": "Report graph result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {},
+  "active": false
+}

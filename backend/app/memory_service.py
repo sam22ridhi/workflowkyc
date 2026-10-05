@@ -15,7 +15,7 @@ from app import config
 from app.db import audit, engine
 from app.doctypes import DOC_TYPES
 from app.memory import MemoryUnavailable, get_store
-from app.models import Case, Document, utcnow, VoiceCall
+from app.models import Case, Document, utcnow, VoiceCall, CpvSession
 from app.sarvam import demo_cache
 from app.sarvam.normalise import plain
 
@@ -239,7 +239,8 @@ def record_graph_result(case_id: str, ok: bool, detail: str | None) -> dict:
         if case is None:
             raise LookupError(case_id)
         stored = (s.query(Document).filter(Document.case_id == case_id, Document.memory_status == "stored").count()
-                  + s.query(VoiceCall).filter(VoiceCall.case_id == case_id, VoiceCall.memory_status == "stored").count())
+                  + s.query(VoiceCall).filter(VoiceCall.case_id == case_id, VoiceCall.memory_status == "stored").count()
+                  + s.query(CpvSession).filter(CpvSession.case_id == case_id, CpvSession.memory_status == "stored").count())
         if ok and not stored:   # Cognee "completes" a cognify of an empty dataset; nothing stored (documents or call records) means nothing to search
             return _graph(s, case, "none", "No document of this case is stored in memory yet, so there is no graph to search.")
         return _graph(s, case, "ready" if ok else "failed", detail or ("cognify completed" if ok else "cognify failed"))

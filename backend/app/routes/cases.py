@@ -13,14 +13,16 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from app import config, pipeline
+from app import case_admin, config, pipeline
 from app import crm_form as crm_builder
 from app.checks import cross_check
 from app.registry import mock_registry
-from app import telephony, voice_agent
+from app import telephony, vcip as vcip_module, voice_agent
+from app.drishti import service as drishti
+from app.finops import service as finops_service
 from app.db import audit, engine, get_session
 from app.doctypes import DOC_TYPES, guess_doc_type
-from app.models import AuditEvent, Case, CrmOverride, Document, VoiceCall, utcnow
+from app.models import AuditEvent, Case, CrmOverride, Document, VcipRecord, VoiceCall, utcnow
 from app.schemas_api import (
     ActionRequest, CaseDetail, CaseList, Envelope, Kpis, RejectedFile, UploadAccepted,
 )
@@ -43,12 +45,15 @@ def list_cases(session: Session = Depends(get_session)):
     rows = [case_row(session, c) for c in cases]
     week_ago = utcnow() - timedelta(days=7)
     kpis = Kpis(
-        totalOpen=sum(1 for c in cases if c.status != "live"),
+        totalOpen=sum(1 for c in cases if c.status not in {"live", "closed"}),
         newThisWeek=sum(1 for c in cases if (c.created_at if c.created_at.tzinfo else c.created_at.replace(tzinfo=timezone.utc)) > week_ago),
         pendingAiVerification=sum(1 for c in cases if c.status == "ai_verifying"),
         awaitingMerchant=sum(1 for c in cases if c.status in {"awaiting_merchant", "docs_pending"}),
         readyForSubmission=sum(1 for c in cases if c.status == "ready_for_review"),
         escalations=sum(1 for r in rows if r.route == "ESCALATE"),
+        awaitingChecker=sum(1 for c in cases if c.stage == 5),
+        cpvInProgress=sum(1 for c in cases if c.stage == 6),
+        vcipQueue=sum(1 for c in cases if c.stage == 7),
     )
     return Envelope(data=CaseList(kpis=kpis, items=rows))
 
@@ -168,7 +173,13 @@ ACTIONS = {
     "approve": ("kam", "KAM approved & submitted to Compliance", "KAM review complete; case forwarded to the checker.", "ready_for_review", 5, "success"),
     "submit_to_compliance": ("kam", "Submitted to Compliance (Checker)", "KAM review complete; case forwarded to the checker.", "ready_for_review", 5, "success"),
     "send_back": ("compliance", "Sent back to KAM", "Checker returned the case for rework.", "needs_attention", 4, "warning"),
-    "compliance_approve": ("compliance", "Compliance approved", "Four-eyes check passed; moving to bank settlement test.", "ready_for_review", 6, "success"),
+    "compliance_approve": ("compliance", "Compliance approved", "Four-eyes check passed. Drishti will now verify the shop (contact point verification).", "awaiting_merchant", 6, "success"),
+    "cpv_approve": ("kam", "KAM approved the contact point verification", "A person confirmed the shop after reviewing Drishti's evidence; moving to V-CIP sign-off.", "ready_for_review", 7, "success"),
+    "cpv_retake": ("kam", "KAM asked for new shop photos", "The previous capture was set aside; the merchant gets a fresh secure link.", "awaiting_merchant", None, "warning"),
+    "vcip_call": ("compliance", "V-CIP pre-interview requested", "The compliance officer asked the voice agent to run the Hindi pre-interview.", "ready_for_review", None, "ai"),
+    "inv_resolve": ("kam", "Settlement investigation resolved", "The KAM reviewed the evidence and resolved the investigation.", "closed", None, "success"),
+    "inv_dismiss": ("kam", "Settlement investigation dismissed", "The KAM dismissed the investigation as a false positive.", "closed", None, "neutral"),
+    "vcip_signoff": ("compliance", "V-CIP signed off", "The authorised official signed off the video-KYC pre-interview; moving to the bank settlement test.", "ready_for_review", 8, "success"),
 }
 
 
@@ -179,15 +190,19 @@ ACTION_ROLES = {
     "voice": {"kam", "agent"}, "request": {"kam", "agent"},
     "approve": {"kam"}, "submit_to_compliance": {"kam"},
     "send_back": {"compliance"}, "compliance_approve": {"compliance"},
+    "inv_resolve": {"kam"}, "inv_dismiss": {"kam"},
+    "cpv_approve": {"kam"}, "cpv_retake": {"kam"}, "vcip_call": {"compliance"}, "vcip_signoff": {"compliance"},
 }
 
 
-def _authorise_action(case: Case, body: ActionRequest) -> None:
+def _authorise_action(case: Case, body: ActionRequest, session: Session) -> None:
     allowed = ACTION_ROLES[body.action]
     if body.actor not in allowed:
         who = " or ".join(sorted(allowed))
         raise HTTPException(403, f"'{body.actor}' cannot perform '{body.action}'. Only {who} can. "
                                  "Decisions are made by people; the agent cannot approve or reject anything.")
+    if body.action in {"inv_resolve", "inv_dismiss"} and (case.kind != "investigation" or case.status != "needs_attention"):
+        raise HTTPException(409, "Only an open settlement investigation can be resolved or dismissed.")
     if body.action in {"approve", "submit_to_compliance"}:
         if case.route is None:
             raise HTTPException(409, "AI verification has not finished for this case yet, so it cannot be approved.")
@@ -195,12 +210,24 @@ def _authorise_action(case: Case, body: ActionRequest) -> None:
             raise HTTPException(409, "This case has already been submitted to Compliance.")
     if body.action in {"send_back", "compliance_approve"} and case.stage != 5:
         raise HTTPException(409, "Compliance can act only after the KAM has submitted the case (stage 5).")
+    if body.action in {"cpv_approve", "cpv_retake"} and case.stage != 6:
+        raise HTTPException(409, "Contact point verification is not open for this case (it opens after Compliance approval).")
+    if body.action == "cpv_approve":
+        current = drishti.active_session(session, case.id)
+        if current is None or current.status != "needs_review":
+            raise HTTPException(409, "There is nothing to approve: Drishti has not flagged this verification for a person to review.")
+    if body.action in {"vcip_signoff", "vcip_call"} and case.stage != 7:
+        raise HTTPException(409, "V-CIP opens after the contact point verification is approved.")
 
 
 def _do_action(case_id: str, body: ActionRequest, session: Session):
     case = get_case(session, case_id)
-    _authorise_action(case, body)
-    to_number = _voice_target(session, case, body) if body.action == "voice" and (body.channel or "voice") == "voice" else None
+    _authorise_action(case, body, session)
+    is_call = (body.action == "voice" and (body.channel or "voice") == "voice") or body.action == "vcip_call"
+    to_number = _voice_target(session, case, body) if is_call else None
+    call_kind = "vcip" if body.action == "vcip_call" else "chase"
+    if body.action == "vcip_call" and vcip_module.configured_problem():
+        raise HTTPException(422, f"The V-CIP pre-interview agent is not configured: {vcip_module.configured_problem()} is empty in backend/.env. See voice/SARVAM_VCIP_AGENT_SETUP.md.")
     _, title, detail, status, stage, tone = ACTIONS[body.action]
     if to_number:
         detail += f" Calling {telephony.mask(to_number)}."
@@ -216,9 +243,34 @@ def _do_action(case_id: str, body: ActionRequest, session: Session):
     session.commit()
     audit(session, case_id, body.actor, title, detail, tone)
     if to_number:
-        _hand_off_voice_chase(session, case, to_number)
+        _hand_off_voice_chase(session, case, to_number, call_kind)
+    if body.action == "compliance_approve":
+        drishti.ensure_session(session, case)
+        _hand_off_cpv(session, case)
+    elif body.action == "cpv_approve":
+        current = drishti.active_session(session, case.id)
+        current.decided_by = body.actor
+        session.add(current)
+        session.commit()
+        vcip_module.ensure(session, case)
+    elif body.action == "vcip_signoff":
+        vcip_module.sign_off(session, case, body.actor)
+    elif body.action == "cpv_retake":
+        drishti.new_session(session, case)
+    elif body.action in {"inv_resolve", "inv_dismiss"}:
+        finops_service.close(session, case, body.action, body.actor, body.note)
     session.refresh(case)
     return Envelope(data=case_detail(session, case))
+
+
+def _hand_off_cpv(session: Session, case: Case) -> None:
+    """Tell n8n (Sutradhar) that shop verification has opened. The link already exists; this lets the workflow follow the case. Never raises."""
+    if not config.N8N_CPV_WEBHOOK_URL:
+        return
+    try:
+        httpx.post(config.N8N_CPV_WEBHOOK_URL, json={"case_id": case.id}, timeout=5).raise_for_status()
+    except httpx.HTTPError as e:
+        audit(session, case.id, "agent", "Verification workflow not started", f"n8n CPV workflow unreachable: {e}"[:300], "warning")
 
 
 CALL_IN_PROGRESS_SECONDS = 300
@@ -236,19 +288,23 @@ def _voice_target(session: Session, case: Case, body: ActionRequest) -> str:
     since = utcnow() - timedelta(seconds=CALL_IN_PROGRESS_SECONDS)
     placed = session.exec(select(AuditEvent).where(AuditEvent.case_id == case.id, AuditEvent.action == "Voice call placed",
                                                    AuditEvent.ts >= since).order_by(AuditEvent.ts.desc())).first()
-    if placed and not session.exec(select(VoiceCall).where(VoiceCall.case_id == case.id, VoiceCall.created_at >= placed.ts)).first():
+    finished = session.exec(select(VoiceCall).where(VoiceCall.case_id == case.id, VoiceCall.created_at >= placed.ts)).first() if placed else None
+    if placed and not finished:
+        pre = session.exec(select(VcipRecord).where(VcipRecord.case_id == case.id)).first()          # a V-CIP call reports to its own record
+        finished = pre if pre and pre.last_result_at and pre.last_result_at >= placed.ts else None
+    if placed and not finished:
         raise HTTPException(409, "A voice call for this case is still in progress. Wait for it to finish before calling again.")
     return number
 
 
-def _hand_off_voice_chase(session: Session, case: Case, to_number: str) -> None:
+def _hand_off_voice_chase(session: Session, case: Case, to_number: str, kind: str = "chase") -> None:
     """Trigger the n8n voice workflow. Never raises: the KAM's action is already recorded."""
     if not config.N8N_VOICE_WEBHOOK_URL:
         audit(session, case.id, "agent", "Voice call not placed",
               "Voice agent context is ready, but phone calling is not configured yet (N8N_VOICE_WEBHOOK_URL is empty).", "neutral")
         return
     try:
-        r = httpx.post(config.N8N_VOICE_WEBHOOK_URL, json={"case_id": case.id, "to_number": to_number}, timeout=5)
+        r = httpx.post(config.N8N_VOICE_WEBHOOK_URL, json={"case_id": case.id, "to_number": to_number, **({"kind": "vcip"} if kind == "vcip" else {})}, timeout=5)
         r.raise_for_status()
         audit(session, case.id, "agent", "Voice chase handed to n8n", "n8n will place the call and report the outcome.", "ai")
     except httpx.HTTPError as e:
@@ -338,6 +394,14 @@ def crm_override(case_id: str, body: OverrideBody, session: Session = Depends(ge
     audit(session, case_id, "kam", "CRM field overridden",
           f"{current[body.key]['label']}: “{current[body.key]['value']}” → “{body.value}”" + (f" ({body.note})" if body.note else ""),
           "warning")
+    if body.key == "principal_address" and case.stage <= 4:
+        # the KAM confirmed where the merchant operates: that becomes the application's operating address and the checks are re-run
+        case.operating_address = body.value
+        session.add(case)
+        session.commit()
+        audit(session, case_id, "kam", "Application operating address updated", f"The KAM confirmed the operating address as “{body.value}”; the checks are re-run.", "neutral")
+        if session.exec(select(Document).where(Document.case_id == case_id)).first():
+            cross_check.run(case_id)
     return {"ok": True, "data": crm_builder.build(session, case)}
 
 
@@ -348,6 +412,14 @@ def cross_check_case(case_id: str, session: Session = Depends(get_session)):
     `issues` lists failed/warned checks, so the workflow's IF node can test `issues.length > 0`."""
     get_case(session, case_id)
     return {"ok": True, "data": cross_check.run(case_id)}
+
+
+@router.post("/cases/{case_id}/demo/reset")
+def demo_reset(case_id: str, session: Session = Depends(get_session)):
+    """DEMO ONLY: put a seeded onboarding case back to its starting state (files, checks, calls, verification and its Cognee memory), so the demo can be run again."""
+    if not config.CPV_ALLOW_DEMO_REFERENCE:
+        raise HTTPException(403, "Demo controls are disabled. Set CPV_ALLOW_DEMO_REFERENCE=true in backend/.env to allow resetting a case for a demo.")
+    return {"ok": True, "data": case_admin.reset_case(session, get_case(session, case_id))}
 
 
 @router.get("/mock-registry/{case_id}")
@@ -362,17 +434,27 @@ class VoiceResult(BaseModel):
     summary: str | None = Field(default=None, max_length=2000)
     transcript: list[dict] | None = None
     call_id: str | None = Field(default=None, max_length=200)
+    kind: Literal["chase", "vcip"] = "chase"
+
+
+@router.get("/cases/{case_id}/vcip")
+def case_vcip(case_id: str, session: Session = Depends(get_session)):
+    case = get_case(session, case_id)
+    return {"ok": True, "data": vcip_module.view(session, case)}
 
 
 @router.get("/cases/{case_id}/voice-chase/context")
-def voice_chase_context(case_id: str, session: Session = Depends(get_session)):
+def voice_chase_context(case_id: str, kind: Literal["chase", "vcip"] = Query(default="chase"), session: Session = Depends(get_session)):
     """Agent variables + Hindi opening line for this case. Only merchant-fixable items; escalations are held back."""
-    return {"ok": True, "data": voice_agent.context(session, get_case(session, case_id))}
+    case = get_case(session, case_id)
+    return {"ok": True, "data": vcip_module.context(session, case) if kind == "vcip" else voice_agent.context(session, case)}
 
 
 @router.post("/cases/{case_id}/voice-chase/result")
 def voice_chase_result(case_id: str, body: VoiceResult, session: Session = Depends(get_session)):
     case = get_case(session, case_id)
+    if body.kind == "vcip":
+        return {"ok": True, "data": vcip_module.record_result(session, case, body.outcome, body.summary, body.transcript, body.call_id)}
     return {"ok": True, "data": voice_agent.record_result(session, case, body.outcome, body.summary, body.transcript, body.call_id)}
 
 
@@ -400,6 +482,7 @@ def voice_call_memory_result(call_id: str, body: VoiceMemoryResult, session: Ses
 # ---------- placing and following the call (called by n8n) ----------
 class PlaceCall(BaseModel):
     to_number: str = Field(max_length=40)
+    kind: Literal["chase", "vcip"] = "chase"
 
 
 @router.post("/cases/{case_id}/voice-chase/call")
@@ -407,29 +490,32 @@ def voice_chase_place_call(case_id: str, body: PlaceCall, session: Session = Dep
     """Place the outbound call with the live agent context. A call that cannot be placed answers 200 with ok=false and a readable
     reason, so n8n can branch on it and write the reason to the timeline."""
     case = get_case(session, case_id)
-    ctx = voice_agent.context(session, case)
+    vc = body.kind == "vcip"
+    ctx = vcip_module.context(session, case) if vc else voice_agent.context(session, case)
     if not ctx["should_call"]:
         return {"ok": False, "error": "Nothing on this case needs the merchant, so there is nothing to call about."}
     try:
         number = telephony.normalise_number(body.to_number)
-        placed = telephony.place_call(number, ctx["agent_variables"], ctx["initial_bot_message"], ctx["initial_language_name"], case_id)
+        placed = telephony.place_call(number, ctx["agent_variables"], ctx["initial_bot_message"], ctx["initial_language_name"], case_id,
+                                      **({"app_id": config.SARVAM_VCIP_AGENT_ID, "app_version": config.SARVAM_VCIP_AGENT_VERSION, "app_name": "SARVAM_VCIP_AGENT_ID"} if vc else {}))
     except telephony.TelephonyError as e:
         return {"ok": False, "error": str(e)}
     audit(session, case_id, "agent", "Voice call placed",
-          f"Calling {telephony.mask(number)} from {config.SARVAM_AGENT_PHONE_NUMBER}. Attempt {placed['attempt_id']}.", "ai")
+          f"{'V-CIP pre-interview: calling' if vc else 'Calling'} {telephony.mask(number)} from {config.SARVAM_AGENT_PHONE_NUMBER}. Attempt {placed['attempt_id']}.", "ai")
     return {"ok": True, "data": {**placed, "to": telephony.mask(number)}}
 
 
 @router.get("/cases/{case_id}/voice-chase/attempts/{attempt_id}")
-def voice_chase_attempt(case_id: str, attempt_id: str, session: Session = Depends(get_session)):
+def voice_chase_attempt(case_id: str, attempt_id: str, kind: Literal["chase", "vcip"] = Query(default="chase"), session: Session = Depends(get_session)):
     """Poll one call. Returns {state: pending|done, ...} and, when done and connected, the transcript."""
     get_case(session, case_id)
     try:
-        status = telephony.attempt_status(attempt_id)
+        app_id = config.SARVAM_VCIP_AGENT_ID if kind == "vcip" else None
+        status = telephony.attempt_status(attempt_id, app_id)
     except telephony.TelephonyError as e:
         raise HTTPException(502, str(e)) from e
     if status["state"] == "done" and status["outcome"] == "reached" and status.get("interaction_id"):
-        status["transcript"] = telephony.transcript(status["interaction_id"])
+        status["transcript"] = telephony.transcript(status["interaction_id"], config.SARVAM_VCIP_AGENT_ID if kind == "vcip" else None)
     elif status["state"] == "done":
         status["transcript"] = []
     seconds = status.get("duration")

@@ -1,10 +1,11 @@
 fastapi
-uvicorn[standard]
-python-multipart
-python-dotenv
 httpx
-sqlmodel
-sarvamai>=0.1.35
+numpy
 pillow
-reportlab
 pytest
+python-dotenv
+python-multipart
+reportlab
+sarvamai>=0.1.35
+sqlmodel
+uvicorn[standard]

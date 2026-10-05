@@ -45,6 +45,20 @@ SARVAM_CONNECTION_ID = os.environ.get("SARVAM_CONNECTION_ID", "").strip()
 SARVAM_AGENT_PHONE_NUMBER = os.environ.get("SARVAM_AGENT_PHONE_NUMBER", "").strip()
 SARVAM_AGENT_VERSION = int(os.environ.get("SARVAM_AGENT_VERSION", "1") or 1)
 SARVAM_CALLBACK_URL = os.environ.get("SARVAM_CALLBACK_URL", "").strip()
+# V-CIP pre-interview: a SECOND Sarvam agent (its own prompt: randomized Hindi liveness questions). See voice/SARVAM_VCIP_AGENT_SETUP.md.
+SARVAM_VCIP_AGENT_ID = os.environ.get("SARVAM_VCIP_AGENT_ID", "").strip()
+SARVAM_VCIP_AGENT_VERSION = int(os.environ.get("SARVAM_VCIP_AGENT_VERSION", "") or SARVAM_AGENT_VERSION)
+
+# Contact point verification (Drishti)
+PUBLIC_APP_URL = os.environ.get("PUBLIC_APP_URL", "http://localhost:5173").rstrip("/")   # where merchants open the capture link (needs HTTPS on a phone)
+N8N_CPV_WEBHOOK_URL = os.environ.get("N8N_CPV_WEBHOOK_URL", "").strip()
+CPV_RADIUS_M = float(os.environ.get("CPV_RADIUS_M", "100"))
+CPV_MAX_ACCURACY_M = float(os.environ.get("CPV_MAX_ACCURACY_M", "100"))
+CPV_LINK_HOURS = float(os.environ.get("CPV_LINK_HOURS", "24"))
+CPV_MAX_CLOCK_SKEW_S = float(os.environ.get("CPV_MAX_CLOCK_SKEW_S", "120"))
+N8N_SETTLEMENT_WEBHOOK_URL = os.environ.get("N8N_SETTLEMENT_WEBHOOK_URL", "").strip()   # .../webhook/karyakarta-settlement-scan
+FINOPS_SEED_DEMO = _bool("FINOPS_SEED_DEMO", True)                 # create the synthetic post-onboarding demo merchant at startup
+CPV_ALLOW_DEMO_REFERENCE = _bool("CPV_ALLOW_DEMO_REFERENCE")   # lets a demo set where the shop "is" (clearly labelled demo)
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 ALLOWED_EXTENSIONS = {".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}

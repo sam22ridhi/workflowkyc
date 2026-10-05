@@ -1,1 +1,1027 @@
-{"ok":true,"data":{"id":"KYB-20814","merchantName":"Sharma Foods Pvt Ltd","legalName":"Sharma Foods Private Limited","entityType":"Private Limited","cin":"U56101MH2021PTC123456","gstin":"27AABCS1429E1Z8","pan":"AABCS1429E","registeredAddress":"12 MG Road, Mumbai - 400001, Maharashtra","status":"needs_attention","accountStatus":"Cap reached · ₹50k limit","stage":4,"stages":[{"id":1,"label":"Invited","status":"done"},{"id":2,"label":"Docs Upload","status":"done"},{"id":3,"label":"AI Verifying","status":"done"},{"id":4,"label":"KAM Review","status":"current"},{"id":5,"label":"Checker (Compliance)","status":"upcoming"},{"id":6,"label":"Bank Settlement Test","status":"upcoming"},{"id":7,"label":"e-Agreement Sign","status":"upcoming"},{"id":8,"label":"Live Unlimited","status":"upcoming"}],"route":"ESCALATE","summary":"4 issues found, 6 checks passed: 2 need human judgement (Board-resolution signatory is a current director; Beneficial owners above 10% identified and KYC'd) and 2 the merchant can fix (Bank account holder matches legal name; Address consistent (registered office / principal place / application)). Escalate to a KAM decision.","graphStatus":"ready","completion":100,"lastUpdated":"just now","documents":[{"id":"a80d4be03699","name":"Company PAN","kind":"PAN","status":"received","fieldsExtracted":4,"sourceLabel":"Company_PAN.pdf · extracted"},{"id":"2a36c0c9e362","name":"GST Certificate (REG-06)","kind":"GST","status":"received","fieldsExtracted":9,"sourceLabel":"GST_Certificate.pdf · extracted"},{"id":"6b642cc6ee98","name":"Certificate of Incorporation","kind":"COI","status":"received","fieldsExtracted":6,"sourceLabel":"Certificate_of_Incorporation.pdf · extracted"},{"id":"103edb057991","name":"Board Resolution","kind":"BOARD_RESOLUTION","status":"received","fieldsExtracted":6,"sourceLabel":"Board_Resolution.pdf · extracted"},{"id":"333bf41d7548","name":"Cancelled Cheque / Bank Letter","kind":"BANK_CHEQUE","status":"received","fieldsExtracted":6,"sourceLabel":"Cancelled_Cheque.pdf · extracted"},{"id":"247b9b3a1ff8","name":"Director KYC","kind":"DIRECTOR_KYC","status":"received","fieldsExtracted":6,"sourceLabel":"Director_KYC_Anil_Sharma.pdf · extracted"},{"id":"c86b6cb6acfc","name":"Shareholding / Beneficial Owner Declaration","kind":"SHAREHOLDING","status":"received","fieldsExtracted":4,"sourceLabel":"Shareholding_Declaration.pdf · extracted"},{"id":"6b22f1a498de","name":"FSSAI Licence","kind":"FSSAI","status":"received","fieldsExtracted":7,"sourceLabel":"FSSAI_Licence.pdf · extracted"}],"checklist":[{"doc_type":"pan","label":"Company PAN","status":"uploaded","doc_id":"a80d4be03699"},{"doc_type":"gst","label":"GST Certificate (REG-06)","status":"uploaded","doc_id":"2a36c0c9e362"},{"doc_type":"coi","label":"Certificate of Incorporation","status":"uploaded","doc_id":"6b642cc6ee98"},{"doc_type":"board_resolution","label":"Board Resolution","status":"uploaded","doc_id":"103edb057991"},{"doc_type":"bank_cheque","label":"Cancelled Cheque / Bank Letter","status":"uploaded","doc_id":"333bf41d7548"},{"doc_type":"director_kyc","label":"Director KYC","status":"uploaded","doc_id":"247b9b3a1ff8"},{"doc_type":"shareholding","label":"Shareholding / Beneficial Owner Declaration","status":"uploaded","doc_id":"c86b6cb6acfc"},{"doc_type":"fssai","label":"FSSAI Licence","status":"uploaded","doc_id":"6b22f1a498de"}],"uploaded":[{"doc_type":"pan","label":"Company PAN","status":"uploaded","doc_id":"a80d4be03699"},{"doc_type":"gst","label":"GST Certificate (REG-06)","status":"uploaded","doc_id":"2a36c0c9e362"},{"doc_type":"coi","label":"Certificate of Incorporation","status":"uploaded","doc_id":"6b642cc6ee98"},{"doc_type":"board_resolution","label":"Board Resolution","status":"uploaded","doc_id":"103edb057991"},{"doc_type":"bank_cheque","label":"Cancelled Cheque / Bank Letter","status":"uploaded","doc_id":"333bf41d7548"},{"doc_type":"director_kyc","label":"Director KYC","status":"uploaded","doc_id":"247b9b3a1ff8"},{"doc_type":"shareholding","label":"Shareholding / Beneficial Owner Declaration","status":"uploaded","doc_id":"c86b6cb6acfc"},{"doc_type":"fssai","label":"FSSAI Licence","status":"uploaded","doc_id":"6b22f1a498de"}],"missing":[],"findings":[{"id":"signatory_is_director","title":"Board-resolution signatory is a current director","status":"exception","confidence":100,"applicationValue":"","sourceValue":"Ravish Sahay","explanation":"Ravish Sahay is not a current director (MCA: Anil Sharma, Priya Sharma). The resolution itself is signed by Anil Sharma, Priya Sharma. A human must judge whether this is a valid delegation of authority.","recommendedAction":"Human review: escalate to a KAM decision"},{"id":"beneficial_owners","title":"Beneficial owners above 10% identified and KYC'd","status":"exception","confidence":100,"applicationValue":"","sourceValue":"Priya Sharma: 30% direct","explanation":"Priya Sharma 30% direct has no KYC on file; Rakesh Sharma 18% effective (via Sharma Holdings LLP: 60% of its 30%) has no KYC on file; Meera Sharma 12% effective (via Sharma Holdings LLP: 40% of its 30%) has no KYC on file. 2 hidden behind a corporate shareholder.","recommendedAction":"Human review: escalate to a KAM decision"},{"id":"bank_holder_name","title":"Bank account holder matches legal name","status":"exception","confidence":100,"applicationValue":"Sharma Foods Private Limited","sourceValue":"Sharma Foods","explanation":"The cheque pre-prints “Sharma Foods” but the legal name is “Sharma Foods Private Limited” (the company suffix is missing; the holder name must match exactly).","recommendedAction":"Ask the merchant to correct or re-upload"},{"id":"address_consistent","title":"Address consistent (registered office / principal place / application)","status":"exception","confidence":100,"applicationValue":"12 MG Road, Mumbai - 400001, Maharashtra","sourceValue":"12 Mahatma Gandhi Marg, Navi Mumbai - 400703, Maharashtra","explanation":"Address drift: the GST certificate’s principal place says “12 Mahatma Gandhi Marg, Navi Mumbai - 400703, Maharashtra” but the application says “12 MG Road, Mumbai - 400001, Maharashtra”.","recommendedAction":"Ask the merchant to correct or re-upload"}],"checks":[{"id":"legal_name_consistent","label":"Legal name consistent across documents","status":"pass","detail":"4 documents match “Sharma Foods Private Limited” (ignoring Pvt/Private, Ltd/Limited and punctuation).","evidence":[{"doc_id":null,"doc_type":null,"field":"legal_name","page":null,"value":"Sharma Foods Private Limited","source":"Merchant application"},{"doc_id":"a80d4be03699","doc_type":"pan","field":"holder_name","page":1,"value":"SHARMA FOODS PRIVATE LIMITED","source":"Company PAN"},{"doc_id":"2a36c0c9e362","doc_type":"gst","field":"legal_name","page":1,"value":"SHARMA FOODS PRIVATE LIMITED","source":"GST Cert"},{"doc_id":"6b642cc6ee98","doc_type":"coi","field":"company_name","page":1,"value":"SHARMA FOODS PRIVATE LIMITED","source":"COI"},{"doc_id":"333bf41d7548","doc_type":"bank_cheque","field":"account_holder_name","page":1,"value":"Sharma Foods","source":"Cancelled Cheque"}],"action":null},{"id":"pan_entity_type","label":"PAN valid and matches entity type","status":"pass","detail":"AABCS1429E: 4th character “C” = Company, consistent with a private limited.","evidence":[{"doc_id":"a80d4be03699","doc_type":"pan","field":"pan_number","page":1,"value":"AABCS1429E","source":"Company PAN"}],"action":null},{"id":"gstin_pan","label":"GSTIN embeds the company PAN","status":"pass","detail":"GSTIN 27AABCS1429E1Z8 contains PAN AABCS1429E in characters 3-12 and is Active in the GST registry.","evidence":[{"doc_id":"2a36c0c9e362","doc_type":"gst","field":"gstin","page":1,"value":"27AABCS1429E1Z8","source":"GST Cert"},{"doc_id":"a80d4be03699","doc_type":"pan","field":"pan_number","page":1,"value":"AABCS1429E","source":"Company PAN"},{"doc_id":null,"doc_type":null,"field":"gstin","page":null,"value":"27AABCS1429E1Z8","source":"MCA registry (MOCK)"}],"action":null},{"id":"cin_match","label":"CIN valid and matches the Certificate of Incorporation","status":"pass","detail":"CIN U56101MH2021PTC123456 is well-formed and matches the MCA record (Active).","evidence":[{"doc_id":"6b642cc6ee98","doc_type":"coi","field":"cin","page":1,"value":"U56101MH2021PTC123456","source":"COI"},{"doc_id":null,"doc_type":null,"field":"cin","page":null,"value":"U56101MH2021PTC123456","source":"Merchant application"},{"doc_id":null,"doc_type":null,"field":"cin","page":null,"value":"U56101MH2021PTC123456","source":"MCA registry (MOCK)"}],"action":null},{"id":"signatory_is_director","label":"Board-resolution signatory is a current director","status":"fail","detail":"Ravish Sahay is not a current director (MCA: Anil Sharma, Priya Sharma). The resolution itself is signed by Anil Sharma, Priya Sharma. A human must judge whether this is a valid delegation of authority.","evidence":[{"doc_id":"103edb057991","doc_type":"board_resolution","field":"authorised_signatory_name","page":1,"value":"Ravish Sahay","source":"Board Resolution"},{"doc_id":null,"doc_type":null,"field":"directors","page":null,"value":"Anil Sharma, Priya Sharma","source":"MCA registry (MOCK)"}],"action":"escalate"},{"id":"beneficial_owners","label":"Beneficial owners above 10% identified and KYC'd","status":"fail","detail":"Priya Sharma 30% direct has no KYC on file; Rakesh Sharma 18% effective (via Sharma Holdings LLP: 60% of its 30%) has no KYC on file; Meera Sharma 12% effective (via Sharma Holdings LLP: 40% of its 30%) has no KYC on file. 2 hidden behind a corporate shareholder.","evidence":[{"doc_id":"c86b6cb6acfc","doc_type":"shareholding","field":"shareholders","page":1,"value":"Priya Sharma: 30% direct","source":"Shareholding Decl."},{"doc_id":"c86b6cb6acfc","doc_type":"shareholding","field":"entity_partners","page":1,"value":"Rakesh Sharma: 18% effective (via Sharma Holdings LLP: 60% of its 30%)","source":"Shareholding Decl."},{"doc_id":"c86b6cb6acfc","doc_type":"shareholding","field":"entity_partners","page":1,"value":"Meera Sharma: 12% effective (via Sharma Holdings LLP: 40% of its 30%)","source":"Shareholding Decl."},{"doc_id":"c86b6cb6acfc","doc_type":"shareholding","field":"shareholders","page":1,"value":"Anil Sharma: 40% direct","source":"Shareholding Decl."}],"action":"escalate"},{"id":"bank_holder_name","label":"Bank account holder matches legal name","status":"fail","detail":"The cheque pre-prints “Sharma Foods” but the legal name is “Sharma Foods Private Limited” (the company suffix is missing; the holder name must match exactly).","evidence":[{"doc_id":"333bf41d7548","doc_type":"bank_cheque","field":"account_holder_name","page":1,"value":"Sharma Foods","source":"Cancelled Cheque"},{"doc_id":null,"doc_type":null,"field":"legal_name","page":null,"value":"Sharma Foods Private Limited","source":"Merchant application"},{"doc_id":null,"doc_type":null,"field":"penny_drop","page":null,"value":"50200034928174 · SHARMA FOODS PRIVATE LIMITED","source":"MCA registry (MOCK)"}],"action":"ask"},{"id":"address_consistent","label":"Address consistent (registered office / principal place / application)","status":"fail","detail":"Address drift: the GST certificate’s principal place says “12 Mahatma Gandhi Marg, Navi Mumbai - 400703, Maharashtra” but the application says “12 MG Road, Mumbai - 400001, Maharashtra”.","evidence":[{"doc_id":null,"doc_type":null,"field":"registered_address","page":null,"value":"12 MG Road, Mumbai - 400001, Maharashtra","source":"Merchant application"},{"doc_id":"2a36c0c9e362","doc_type":"gst","field":"principal_place_address","page":1,"value":"12 Mahatma Gandhi Marg, Navi Mumbai - 400703, Maharashtra","source":"GST Cert"},{"doc_id":"6b642cc6ee98","doc_type":"coi","field":"registered_office_address","page":1,"value":"12 MG Road, Mumbai - 400001, Maharashtra","source":"COI"},{"doc_id":"6b22f1a498de","doc_type":"fssai","field":"premises_address","page":1,"value":"12 Mahatma Gandhi Marg, Navi Mumbai - 400703","source":"FSSAI Licence"}],"action":"ask"},{"id":"required_documents","label":"Required documents present","status":"pass","detail":"All 7 required documents are present.","evidence":[],"action":null},{"id":"licence","label":"Industry licence present and valid","status":"pass","detail":"FSSAI Licence 11521999000123 is valid until 09/10/2030.","evidence":[{"doc_id":"6b22f1a498de","doc_type":"fssai","field":"licence_number","page":1,"value":"11521999000123","source":"FSSAI Licence"},{"doc_id":"6b22f1a498de","doc_type":"fssai","field":"valid_until","page":1,"value":"09/10/2030","source":"FSSAI Licence"}],"action":null}],"timeline":[{"id":"1","timestamp":"14:22:54","title":"Application submitted","detail":"Merchant submitted onboarding details (Stage 1 live, ₹50k cap).","tone":"neutral","actor":"merchant","ts":"2026-10-02T14:22:54.452052+00:00"},{"id":"6","timestamp":"14:22:56","title":"Document uploaded","detail":"Company_PAN.pdf (Company PAN) · SHA-256 1eff0024dcdc…","tone":"neutral","actor":"merchant","ts":"2026-10-02T14:22:56.204503+00:00"},{"id":"7","timestamp":"14:22:56","title":"Document uploaded","detail":"GST_Certificate.pdf (GST Certificate (REG-06)) · SHA-256 f0b8cd13abd9…","tone":"neutral","actor":"merchant","ts":"2026-10-02T14:22:56.212522+00:00"},{"id":"8","timestamp":"14:22:56","title":"Document uploaded","detail":"Certificate_of_Incorporation.pdf (Certificate of Incorporation) · SHA-256 840dd9100693…","tone":"neutral","actor":"merchant","ts":"2026-10-02T14:22:56.219569+00:00"},{"id":"9","timestamp":"14:22:56","title":"Document uploaded","detail":"Board_Resolution.pdf (Board Resolution) · SHA-256 eccc228ec559…","tone":"neutral","actor":"merchant","ts":"2026-10-02T14:22:56.226619+00:00"},{"id":"10","timestamp":"14:22:56","title":"Document uploaded","detail":"Cancelled_Cheque.pdf (Cancelled Cheque / Bank Letter) · SHA-256 853ca78be7b7…","tone":"neutral","actor":"merchant","ts":"2026-10-02T14:22:56.234152+00:00"},{"id":"11","timestamp":"14:22:56","title":"Document uploaded","detail":"Director_KYC_Anil_Sharma.pdf (Director KYC) · SHA-256 db81cfd535f7…","tone":"neutral","actor":"merchant","ts":"2026-10-02T14:22:56.242239+00:00"},{"id":"12","timestamp":"14:22:56","title":"Document uploaded","detail":"Shareholding_Declaration.pdf (Shareholding / Beneficial Owner Declaration) · SHA-256 5bf27bbfa1bb…","tone":"neutral","actor":"merchant","ts":"2026-10-02T14:22:56.250904+00:00"},{"id":"13","timestamp":"14:22:56","title":"Document uploaded","detail":"FSSAI_Licence.pdf (FSSAI Licence) · SHA-256 c841649459ec…","tone":"neutral","actor":"merchant","ts":"2026-10-02T14:22:56.257546+00:00"},{"id":"14","timestamp":"14:22:56","title":"Extraction started","detail":"Company_PAN.pdf · Company PAN","tone":"ai","actor":"agent","ts":"2026-10-02T14:22:56.310425+00:00"},{"id":"15","timestamp":"14:22:56","title":"Company PAN extracted","detail":"4/5 fields · avg confidence 100% · 0s","tone":"success","actor":"agent","ts":"2026-10-02T14:22:56.328447+00:00"},{"id":"16","timestamp":"14:22:56","title":"Extraction started","detail":"GST_Certificate.pdf · GST Certificate (REG-06)","tone":"ai","actor":"agent","ts":"2026-10-02T14:22:56.342516+00:00"},{"id":"17","timestamp":"14:22:56","title":"GST Certificate (REG-06) extracted","detail":"9/9 fields · avg confidence 100% · 0s","tone":"success","actor":"agent","ts":"2026-10-02T14:22:56.358652+00:00"},{"id":"18","timestamp":"14:22:56","title":"Extraction started","detail":"Certificate_of_Incorporation.pdf · Certificate of Incorporation","tone":"ai","actor":"agent","ts":"2026-10-02T14:22:56.372206+00:00"},{"id":"19","timestamp":"14:22:56","title":"Certificate of Incorporation extracted","detail":"6/6 fields · avg confidence 100% · 0s","tone":"success","actor":"agent","ts":"2026-10-02T14:22:56.384768+00:00"},{"id":"20","timestamp":"14:22:56","title":"Extraction started","detail":"Board_Resolution.pdf · Board Resolution","tone":"ai","actor":"agent","ts":"2026-10-02T14:22:56.399245+00:00"},{"id":"21","timestamp":"14:22:56","title":"Board Resolution extracted","detail":"6/7 fields · avg confidence 100% · 0s","tone":"success","actor":"agent","ts":"2026-10-02T14:22:56.410481+00:00"},{"id":"22","timestamp":"14:22:56","title":"Extraction started","detail":"Cancelled_Cheque.pdf · Cancelled Cheque / Bank Letter","tone":"ai","actor":"agent","ts":"2026-10-02T14:22:56.422900+00:00"},{"id":"23","timestamp":"14:22:56","title":"Cancelled Cheque / Bank Letter extracted","detail":"6/6 fields · avg confidence 100% · 0s","tone":"success","actor":"agent","ts":"2026-10-02T14:22:56.437064+00:00"},{"id":"24","timestamp":"14:22:56","title":"Extraction started","detail":"Director_KYC_Anil_Sharma.pdf · Director KYC","tone":"ai","actor":"agent","ts":"2026-10-02T14:22:56.452120+00:00"},{"id":"25","timestamp":"14:22:56","title":"Director KYC extracted","detail":"6/7 fields · avg confidence 100% · 0s","tone":"success","actor":"agent","ts":"2026-10-02T14:22:56.466060+00:00"},{"id":"26","timestamp":"14:22:56","title":"Extraction started","detail":"Shareholding_Declaration.pdf · Shareholding / Beneficial Owner Declaration","tone":"ai","actor":"agent","ts":"2026-10-02T14:22:56.480600+00:00"},{"id":"27","timestamp":"14:22:56","title":"Shareholding / Beneficial Owner Declaration extracted","detail":"4/4 fields · avg confidence 100% · 0s","tone":"success","actor":"agent","ts":"2026-10-02T14:22:56.493150+00:00"},{"id":"28","timestamp":"14:22:56","title":"Extraction started","detail":"FSSAI_Licence.pdf · FSSAI Licence","tone":"ai","actor":"agent","ts":"2026-10-02T14:22:56.511491+00:00"},{"id":"29","timestamp":"14:22:56","title":"FSSAI Licence extracted","detail":"7/7 fields · avg confidence 100% · 0s","tone":"success","actor":"agent","ts":"2026-10-02T14:22:56.524564+00:00"},{"id":"30","timestamp":"14:23:09","title":"Stored in Cognee memory","detail":"Company_PAN.pdf added to the case knowledge base.","tone":"ai","actor":"agent","ts":"2026-10-02T14:23:09.037623+00:00"},{"id":"31","timestamp":"14:23:16","title":"Stored in Cognee memory","detail":"GST_Certificate.pdf added to the case knowledge base.","tone":"ai","actor":"agent","ts":"2026-10-02T14:23:16.728529+00:00"},{"id":"32","timestamp":"14:23:23","title":"Stored in Cognee memory","detail":"Certificate_of_Incorporation.pdf added to the case knowledge base.","tone":"ai","actor":"agent","ts":"2026-10-02T14:23:23.766239+00:00"},{"id":"33","timestamp":"14:23:30","title":"Stored in Cognee memory","detail":"Board_Resolution.pdf added to the case knowledge base.","tone":"ai","actor":"agent","ts":"2026-10-02T14:23:30.909257+00:00"},{"id":"34","timestamp":"14:23:38","title":"Stored in Cognee memory","detail":"Cancelled_Cheque.pdf added to the case knowledge base.","tone":"ai","actor":"agent","ts":"2026-10-02T14:23:38.062612+00:00"},{"id":"35","timestamp":"14:23:45","title":"Stored in Cognee memory","detail":"Director_KYC_Anil_Sharma.pdf added to the case knowledge base.","tone":"ai","actor":"agent","ts":"2026-10-02T14:23:45.566864+00:00"},{"id":"36","timestamp":"14:23:54","title":"Stored in Cognee memory","detail":"Shareholding_Declaration.pdf added to the case knowledge base.","tone":"ai","actor":"agent","ts":"2026-10-02T14:23:54.080707+00:00"},{"id":"37","timestamp":"14:24:02","title":"Stored in Cognee memory","detail":"FSSAI_Licence.pdf added to the case knowledge base.","tone":"ai","actor":"agent","ts":"2026-10-02T14:24:02.620121+00:00"},{"id":"38","timestamp":"14:24:02","title":"Building knowledge graph","detail":"Cognee is analysing 8 document(s).","tone":"ai","actor":"agent","ts":"2026-10-02T14:24:02.665514+00:00"},{"id":"39","timestamp":"14:24:19","title":"Knowledge graph ready","detail":"Ownership and entity relationships are searchable.","tone":"success","actor":"agent","ts":"2026-10-02T14:24:19.368048+00:00"},{"id":"40","timestamp":"14:24:19","title":"Issue: Board-resolution signatory is a current director","detail":"Ravish Sahay is not a current director (MCA: Anil Sharma, Priya Sharma). The resolution itself is signed by Anil Sharma, Priya Sharma. A human must judge whether this is a valid delegation of authority.","tone":"warning","actor":"agent","ts":"2026-10-02T14:24:19.410998+00:00"},{"id":"41","timestamp":"14:24:19","title":"Issue: Beneficial owners above 10% identified and KYC'd","detail":"Priya Sharma 30% direct has no KYC on file; Rakesh Sharma 18% effective (via Sharma Holdings LLP: 60% of its 30%) has no KYC on file; Meera Sharma 12% effective (via Sharma Holdings LLP: 40% of its 30%) has no KYC on file. 2 hidden behind a corporate shareholder.","tone":"warning","actor":"agent","ts":"2026-10-02T14:24:19.421021+00:00"},{"id":"42","timestamp":"14:24:19","title":"Issue: Bank account holder matches legal name","detail":"The cheque pre-prints “Sharma Foods” but the legal name is “Sharma Foods Private Limited” (the company suffix is missing; the holder name must match exactly).","tone":"warning","actor":"agent","ts":"2026-10-02T14:24:19.430480+00:00"},{"id":"43","timestamp":"14:24:19","title":"Issue: Address consistent (registered office / principal place / application)","detail":"Address drift: the GST certificate’s principal place says “12 Mahatma Gandhi Marg, Navi Mumbai - 400703, Maharashtra” but the application says “12 MG Road, Mumbai - 400001, Maharashtra”.","tone":"warning","actor":"agent","ts":"2026-10-02T14:24:19.437660+00:00"},{"id":"44","timestamp":"14:24:19","title":"Cross-check complete · route ESCALATE","detail":"4 issues found, 6 checks passed: 2 need human judgement (Board-resolution signatory is a current director; Beneficial owners above 10% identified and KYC'd) and 2 the merchant can fix (Bank account holder matches legal name; Address consistent (registered office / principal place / application)). Escalate to a KAM decision.","tone":"warning","actor":"agent","ts":"2026-10-02T14:24:19.446294+00:00"},{"id":"45","timestamp":"14:24:19","title":"Evidence highlights ready","detail":"Company_PAN.pdf: 4/5 fields located on the page","tone":"ai","actor":"agent","ts":"2026-10-02T14:24:19.476013+00:00"},{"id":"46","timestamp":"14:24:19","title":"Evidence highlights ready","detail":"GST_Certificate.pdf: 9/9 fields located on the page","tone":"ai","actor":"agent","ts":"2026-10-02T14:24:19.495854+00:00"},{"id":"47","timestamp":"14:24:19","title":"Evidence highlights ready","detail":"Certificate_of_Incorporation.pdf: 6/6 fields located on the page","tone":"ai","actor":"agent","ts":"2026-10-02T14:24:19.512064+00:00"},{"id":"48","timestamp":"14:24:19","title":"Evidence highlights ready","detail":"Board_Resolution.pdf: 5/7 fields located on the page","tone":"ai","actor":"agent","ts":"2026-10-02T14:24:19.541509+00:00"},{"id":"49","timestamp":"14:24:19","title":"Evidence highlights ready","detail":"Cancelled_Cheque.pdf: 6/6 fields located on the page","tone":"ai","actor":"agent","ts":"2026-10-02T14:24:19.569007+00:00"},{"id":"50","timestamp":"14:24:19","title":"Evidence highlights ready","detail":"Director_KYC_Anil_Sharma.pdf: 6/7 fields located on the page","tone":"ai","actor":"agent","ts":"2026-10-02T14:24:19.598313+00:00"},{"id":"51","timestamp":"14:24:19","title":"Evidence highlights ready","detail":"Shareholding_Declaration.pdf: 4/4 fields located on the page","tone":"ai","actor":"agent","ts":"2026-10-02T14:24:19.640764+00:00"},{"id":"52","timestamp":"14:24:19","title":"Evidence highlights ready","detail":"FSSAI_Licence.pdf: 7/7 fields located on the page","tone":"ai","actor":"agent","ts":"2026-10-02T14:24:19.673899+00:00"}]}}
+{
+ "ok": true,
+ "data": {
+  "id": "KYB-20814",
+  "merchantName": "Sharma Foods Pvt Ltd",
+  "legalName": "Sharma Foods Private Limited",
+  "entityType": "Private Limited",
+  "cin": "U56101MH2021PTC123456",
+  "gstin": "27AABCS1429E1Z8",
+  "pan": "AABCS1429E",
+  "registeredAddress": "12 MG Road, Mumbai - 400001, Maharashtra",
+  "status": "needs_attention",
+  "accountStatus": "Cap reached · ₹50k limit",
+  "stage": 4,
+  "stages": [
+   {
+    "id": 1,
+    "label": "Invited",
+    "status": "done"
+   },
+   {
+    "id": 2,
+    "label": "Docs Upload",
+    "status": "done"
+   },
+   {
+    "id": 3,
+    "label": "AI Verifying",
+    "status": "done"
+   },
+   {
+    "id": 4,
+    "label": "KAM Review",
+    "status": "current"
+   },
+   {
+    "id": 5,
+    "label": "Checker (Compliance)",
+    "status": "upcoming"
+   },
+   {
+    "id": 6,
+    "label": "Contact Point Verification",
+    "status": "upcoming"
+   },
+   {
+    "id": 7,
+    "label": "V-CIP Sign-off",
+    "status": "upcoming"
+   },
+   {
+    "id": 8,
+    "label": "Bank Settlement Test",
+    "status": "upcoming"
+   },
+   {
+    "id": 9,
+    "label": "e-Agreement Sign",
+    "status": "upcoming"
+   },
+   {
+    "id": 10,
+    "label": "Live Unlimited",
+    "status": "upcoming"
+   }
+  ],
+  "route": "ESCALATE",
+  "summary": "4 issues found, 6 checks passed: 2 need human judgement (Board-resolution signatory is a current director; Beneficial owners above 10% identified and KYC'd) and 2 the merchant can fix (Bank account holder matches legal name; Address consistent (registered office / principal place / application)). Escalate to a KAM decision.",
+  "graphStatus": "ready",
+  "completion": 100,
+  "lastUpdated": "just now",
+  "documents": [
+   {
+    "id": "a80d4be03699",
+    "name": "Company PAN",
+    "kind": "PAN",
+    "status": "received",
+    "fieldsExtracted": 4,
+    "sourceLabel": "Company_PAN.pdf · extracted"
+   },
+   {
+    "id": "2a36c0c9e362",
+    "name": "GST Certificate (REG-06)",
+    "kind": "GST",
+    "status": "received",
+    "fieldsExtracted": 9,
+    "sourceLabel": "GST_Certificate.pdf · extracted"
+   },
+   {
+    "id": "6b642cc6ee98",
+    "name": "Certificate of Incorporation",
+    "kind": "COI",
+    "status": "received",
+    "fieldsExtracted": 6,
+    "sourceLabel": "Certificate_of_Incorporation.pdf · extracted"
+   },
+   {
+    "id": "103edb057991",
+    "name": "Board Resolution",
+    "kind": "BOARD_RESOLUTION",
+    "status": "received",
+    "fieldsExtracted": 6,
+    "sourceLabel": "Board_Resolution.pdf · extracted"
+   },
+   {
+    "id": "333bf41d7548",
+    "name": "Cancelled Cheque / Bank Letter",
+    "kind": "BANK_CHEQUE",
+    "status": "received",
+    "fieldsExtracted": 6,
+    "sourceLabel": "Cancelled_Cheque.pdf · extracted"
+   },
+   {
+    "id": "247b9b3a1ff8",
+    "name": "Director KYC",
+    "kind": "DIRECTOR_KYC",
+    "status": "received",
+    "fieldsExtracted": 6,
+    "sourceLabel": "Director_KYC_Anil_Sharma.pdf · extracted"
+   },
+   {
+    "id": "c86b6cb6acfc",
+    "name": "Shareholding / Beneficial Owner Declaration",
+    "kind": "SHAREHOLDING",
+    "status": "received",
+    "fieldsExtracted": 4,
+    "sourceLabel": "Shareholding_Declaration.pdf · extracted"
+   },
+   {
+    "id": "6b22f1a498de",
+    "name": "FSSAI Licence",
+    "kind": "FSSAI",
+    "status": "received",
+    "fieldsExtracted": 7,
+    "sourceLabel": "FSSAI_Licence.pdf · extracted"
+   }
+  ],
+  "checklist": [
+   {
+    "doc_type": "pan",
+    "label": "Company PAN",
+    "status": "uploaded",
+    "doc_id": "a80d4be03699"
+   },
+   {
+    "doc_type": "gst",
+    "label": "GST Certificate (REG-06)",
+    "status": "uploaded",
+    "doc_id": "2a36c0c9e362"
+   },
+   {
+    "doc_type": "coi",
+    "label": "Certificate of Incorporation",
+    "status": "uploaded",
+    "doc_id": "6b642cc6ee98"
+   },
+   {
+    "doc_type": "board_resolution",
+    "label": "Board Resolution",
+    "status": "uploaded",
+    "doc_id": "103edb057991"
+   },
+   {
+    "doc_type": "bank_cheque",
+    "label": "Cancelled Cheque / Bank Letter",
+    "status": "uploaded",
+    "doc_id": "333bf41d7548"
+   },
+   {
+    "doc_type": "director_kyc",
+    "label": "Director KYC",
+    "status": "uploaded",
+    "doc_id": "247b9b3a1ff8"
+   },
+   {
+    "doc_type": "shareholding",
+    "label": "Shareholding / Beneficial Owner Declaration",
+    "status": "uploaded",
+    "doc_id": "c86b6cb6acfc"
+   },
+   {
+    "doc_type": "fssai",
+    "label": "FSSAI Licence",
+    "status": "uploaded",
+    "doc_id": "6b22f1a498de"
+   }
+  ],
+  "uploaded": [
+   {
+    "doc_type": "pan",
+    "label": "Company PAN",
+    "status": "uploaded",
+    "doc_id": "a80d4be03699"
+   },
+   {
+    "doc_type": "gst",
+    "label": "GST Certificate (REG-06)",
+    "status": "uploaded",
+    "doc_id": "2a36c0c9e362"
+   },
+   {
+    "doc_type": "coi",
+    "label": "Certificate of Incorporation",
+    "status": "uploaded",
+    "doc_id": "6b642cc6ee98"
+   },
+   {
+    "doc_type": "board_resolution",
+    "label": "Board Resolution",
+    "status": "uploaded",
+    "doc_id": "103edb057991"
+   },
+   {
+    "doc_type": "bank_cheque",
+    "label": "Cancelled Cheque / Bank Letter",
+    "status": "uploaded",
+    "doc_id": "333bf41d7548"
+   },
+   {
+    "doc_type": "director_kyc",
+    "label": "Director KYC",
+    "status": "uploaded",
+    "doc_id": "247b9b3a1ff8"
+   },
+   {
+    "doc_type": "shareholding",
+    "label": "Shareholding / Beneficial Owner Declaration",
+    "status": "uploaded",
+    "doc_id": "c86b6cb6acfc"
+   },
+   {
+    "doc_type": "fssai",
+    "label": "FSSAI Licence",
+    "status": "uploaded",
+    "doc_id": "6b22f1a498de"
+   }
+  ],
+  "missing": [],
+  "findings": [
+   {
+    "id": "signatory_is_director",
+    "title": "Board-resolution signatory is a current director",
+    "status": "exception",
+    "confidence": 100,
+    "applicationValue": "",
+    "sourceValue": "Ravish Sahay",
+    "explanation": "Ravish Sahay is not a current director (MCA: Anil Sharma, Priya Sharma). The resolution itself is signed by Anil Sharma, Priya Sharma. A human must judge whether this is a valid delegation of authority.",
+    "recommendedAction": "Human review: escalate to a KAM decision"
+   },
+   {
+    "id": "beneficial_owners",
+    "title": "Beneficial owners above 10% identified and KYC'd",
+    "status": "exception",
+    "confidence": 100,
+    "applicationValue": "",
+    "sourceValue": "Priya Sharma: 30% direct",
+    "explanation": "Priya Sharma 30% direct has no KYC on file; Rakesh Sharma 18% effective (via Sharma Holdings LLP: 60% of its 30%) has no KYC on file; Meera Sharma 12% effective (via Sharma Holdings LLP: 40% of its 30%) has no KYC on file. 2 hidden behind a corporate shareholder.",
+    "recommendedAction": "Human review: escalate to a KAM decision"
+   },
+   {
+    "id": "bank_holder_name",
+    "title": "Bank account holder matches legal name",
+    "status": "exception",
+    "confidence": 100,
+    "applicationValue": "Sharma Foods Private Limited",
+    "sourceValue": "Sharma Foods",
+    "explanation": "The cheque pre-prints “Sharma Foods” but the legal name is “Sharma Foods Private Limited” (the company suffix is missing; the holder name must match exactly).",
+    "recommendedAction": "Ask the merchant to correct or re-upload"
+   },
+   {
+    "id": "address_consistent",
+    "title": "Address consistent (registered office / principal place / application)",
+    "status": "exception",
+    "confidence": 100,
+    "applicationValue": "12 MG Road, Mumbai - 400001, Maharashtra",
+    "sourceValue": "12 Mahatma Gandhi Marg, Navi Mumbai - 400703, Maharashtra",
+    "explanation": "Address drift: the GST certificate’s principal place says “12 Mahatma Gandhi Marg, Navi Mumbai - 400703, Maharashtra” but the application says “12 MG Road, Mumbai - 400001, Maharashtra”.",
+    "recommendedAction": "Ask the merchant to correct or re-upload"
+   }
+  ],
+  "checks": [
+   {
+    "id": "legal_name_consistent",
+    "label": "Legal name consistent across documents",
+    "status": "pass",
+    "detail": "4 documents match “Sharma Foods Private Limited” (ignoring Pvt/Private, Ltd/Limited and punctuation).",
+    "evidence": [
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": "legal_name",
+      "page": null,
+      "value": "Sharma Foods Private Limited",
+      "source": "Merchant application"
+     },
+     {
+      "doc_id": "a80d4be03699",
+      "doc_type": "pan",
+      "field": "holder_name",
+      "page": 1,
+      "value": "SHARMA FOODS PRIVATE LIMITED",
+      "source": "Company PAN"
+     },
+     {
+      "doc_id": "2a36c0c9e362",
+      "doc_type": "gst",
+      "field": "legal_name",
+      "page": 1,
+      "value": "SHARMA FOODS PRIVATE LIMITED",
+      "source": "GST Cert"
+     },
+     {
+      "doc_id": "6b642cc6ee98",
+      "doc_type": "coi",
+      "field": "company_name",
+      "page": 1,
+      "value": "SHARMA FOODS PRIVATE LIMITED",
+      "source": "COI"
+     },
+     {
+      "doc_id": "333bf41d7548",
+      "doc_type": "bank_cheque",
+      "field": "account_holder_name",
+      "page": 1,
+      "value": "Sharma Foods",
+      "source": "Cancelled Cheque"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "pan_entity_type",
+    "label": "PAN valid and matches entity type",
+    "status": "pass",
+    "detail": "AABCS1429E: 4th character “C” = Company, consistent with a private limited.",
+    "evidence": [
+     {
+      "doc_id": "a80d4be03699",
+      "doc_type": "pan",
+      "field": "pan_number",
+      "page": 1,
+      "value": "AABCS1429E",
+      "source": "Company PAN"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "gstin_pan",
+    "label": "GSTIN embeds the company PAN",
+    "status": "pass",
+    "detail": "GSTIN 27AABCS1429E1Z8 contains PAN AABCS1429E in characters 3-12 and is Active in the GST registry.",
+    "evidence": [
+     {
+      "doc_id": "2a36c0c9e362",
+      "doc_type": "gst",
+      "field": "gstin",
+      "page": 1,
+      "value": "27AABCS1429E1Z8",
+      "source": "GST Cert"
+     },
+     {
+      "doc_id": "a80d4be03699",
+      "doc_type": "pan",
+      "field": "pan_number",
+      "page": 1,
+      "value": "AABCS1429E",
+      "source": "Company PAN"
+     },
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": "gstin",
+      "page": null,
+      "value": "27AABCS1429E1Z8",
+      "source": "MCA registry (MOCK)"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "cin_match",
+    "label": "CIN valid and matches the Certificate of Incorporation",
+    "status": "pass",
+    "detail": "CIN U56101MH2021PTC123456 is well-formed and matches the MCA record (Active).",
+    "evidence": [
+     {
+      "doc_id": "6b642cc6ee98",
+      "doc_type": "coi",
+      "field": "cin",
+      "page": 1,
+      "value": "U56101MH2021PTC123456",
+      "source": "COI"
+     },
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": "cin",
+      "page": null,
+      "value": "U56101MH2021PTC123456",
+      "source": "Merchant application"
+     },
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": "cin",
+      "page": null,
+      "value": "U56101MH2021PTC123456",
+      "source": "MCA registry (MOCK)"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "signatory_is_director",
+    "label": "Board-resolution signatory is a current director",
+    "status": "fail",
+    "detail": "Ravish Sahay is not a current director (MCA: Anil Sharma, Priya Sharma). The resolution itself is signed by Anil Sharma, Priya Sharma. A human must judge whether this is a valid delegation of authority.",
+    "evidence": [
+     {
+      "doc_id": "103edb057991",
+      "doc_type": "board_resolution",
+      "field": "authorised_signatory_name",
+      "page": 1,
+      "value": "Ravish Sahay",
+      "source": "Board Resolution"
+     },
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": "directors",
+      "page": null,
+      "value": "Anil Sharma, Priya Sharma",
+      "source": "MCA registry (MOCK)"
+     }
+    ],
+    "action": "escalate"
+   },
+   {
+    "id": "beneficial_owners",
+    "label": "Beneficial owners above 10% identified and KYC'd",
+    "status": "fail",
+    "detail": "Priya Sharma 30% direct has no KYC on file; Rakesh Sharma 18% effective (via Sharma Holdings LLP: 60% of its 30%) has no KYC on file; Meera Sharma 12% effective (via Sharma Holdings LLP: 40% of its 30%) has no KYC on file. 2 hidden behind a corporate shareholder.",
+    "evidence": [
+     {
+      "doc_id": "c86b6cb6acfc",
+      "doc_type": "shareholding",
+      "field": "shareholders",
+      "page": 1,
+      "value": "Priya Sharma: 30% direct",
+      "source": "Shareholding Decl."
+     },
+     {
+      "doc_id": "c86b6cb6acfc",
+      "doc_type": "shareholding",
+      "field": "entity_partners",
+      "page": 1,
+      "value": "Rakesh Sharma: 18% effective (via Sharma Holdings LLP: 60% of its 30%)",
+      "source": "Shareholding Decl."
+     },
+     {
+      "doc_id": "c86b6cb6acfc",
+      "doc_type": "shareholding",
+      "field": "entity_partners",
+      "page": 1,
+      "value": "Meera Sharma: 12% effective (via Sharma Holdings LLP: 40% of its 30%)",
+      "source": "Shareholding Decl."
+     },
+     {
+      "doc_id": "c86b6cb6acfc",
+      "doc_type": "shareholding",
+      "field": "shareholders",
+      "page": 1,
+      "value": "Anil Sharma: 40% direct",
+      "source": "Shareholding Decl."
+     }
+    ],
+    "action": "escalate"
+   },
+   {
+    "id": "bank_holder_name",
+    "label": "Bank account holder matches legal name",
+    "status": "fail",
+    "detail": "The cheque pre-prints “Sharma Foods” but the legal name is “Sharma Foods Private Limited” (the company suffix is missing; the holder name must match exactly).",
+    "evidence": [
+     {
+      "doc_id": "333bf41d7548",
+      "doc_type": "bank_cheque",
+      "field": "account_holder_name",
+      "page": 1,
+      "value": "Sharma Foods",
+      "source": "Cancelled Cheque"
+     },
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": "legal_name",
+      "page": null,
+      "value": "Sharma Foods Private Limited",
+      "source": "Merchant application"
+     },
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": "penny_drop",
+      "page": null,
+      "value": "50200034928174 · SHARMA FOODS PRIVATE LIMITED",
+      "source": "MCA registry (MOCK)"
+     }
+    ],
+    "action": "ask"
+   },
+   {
+    "id": "address_consistent",
+    "label": "Address consistent (registered office / principal place / application)",
+    "status": "fail",
+    "detail": "Address drift: the GST certificate’s principal place says “12 Mahatma Gandhi Marg, Navi Mumbai - 400703, Maharashtra” but the application says “12 MG Road, Mumbai - 400001, Maharashtra”.",
+    "evidence": [
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": "registered_address",
+      "page": null,
+      "value": "12 MG Road, Mumbai - 400001, Maharashtra",
+      "source": "Merchant application"
+     },
+     {
+      "doc_id": "2a36c0c9e362",
+      "doc_type": "gst",
+      "field": "principal_place_address",
+      "page": 1,
+      "value": "12 Mahatma Gandhi Marg, Navi Mumbai - 400703, Maharashtra",
+      "source": "GST Cert"
+     },
+     {
+      "doc_id": "6b642cc6ee98",
+      "doc_type": "coi",
+      "field": "registered_office_address",
+      "page": 1,
+      "value": "12 MG Road, Mumbai - 400001, Maharashtra",
+      "source": "COI"
+     },
+     {
+      "doc_id": "6b22f1a498de",
+      "doc_type": "fssai",
+      "field": "premises_address",
+      "page": 1,
+      "value": "12 Mahatma Gandhi Marg, Navi Mumbai - 400703",
+      "source": "FSSAI Licence"
+     }
+    ],
+    "action": "ask"
+   },
+   {
+    "id": "required_documents",
+    "label": "Required documents present",
+    "status": "pass",
+    "detail": "All 7 required documents are present.",
+    "evidence": [],
+    "action": null
+   },
+   {
+    "id": "licence",
+    "label": "Industry licence present and valid",
+    "status": "pass",
+    "detail": "FSSAI Licence 11521999000123 is valid until 09/10/2030.",
+    "evidence": [
+     {
+      "doc_id": "6b22f1a498de",
+      "doc_type": "fssai",
+      "field": "licence_number",
+      "page": 1,
+      "value": "11521999000123",
+      "source": "FSSAI Licence"
+     },
+     {
+      "doc_id": "6b22f1a498de",
+      "doc_type": "fssai",
+      "field": "valid_until",
+      "page": 1,
+      "value": "09/10/2030",
+      "source": "FSSAI Licence"
+     }
+    ],
+    "action": null
+   }
+  ],
+  "timeline": [
+   {
+    "id": "1",
+    "timestamp": "14:22:54",
+    "title": "Application submitted",
+    "detail": "Merchant submitted onboarding details (Stage 1 live, ₹50k cap).",
+    "tone": "neutral",
+    "actor": "merchant",
+    "ts": "2026-10-02T14:22:54.452052+00:00"
+   },
+   {
+    "id": "6",
+    "timestamp": "14:22:56",
+    "title": "Document uploaded",
+    "detail": "Company_PAN.pdf (Company PAN) · SHA-256 1eff0024dcdc…",
+    "tone": "neutral",
+    "actor": "merchant",
+    "ts": "2026-10-02T14:22:56.204503+00:00"
+   },
+   {
+    "id": "7",
+    "timestamp": "14:22:56",
+    "title": "Document uploaded",
+    "detail": "GST_Certificate.pdf (GST Certificate (REG-06)) · SHA-256 f0b8cd13abd9…",
+    "tone": "neutral",
+    "actor": "merchant",
+    "ts": "2026-10-02T14:22:56.212522+00:00"
+   },
+   {
+    "id": "8",
+    "timestamp": "14:22:56",
+    "title": "Document uploaded",
+    "detail": "Certificate_of_Incorporation.pdf (Certificate of Incorporation) · SHA-256 840dd9100693…",
+    "tone": "neutral",
+    "actor": "merchant",
+    "ts": "2026-10-02T14:22:56.219569+00:00"
+   },
+   {
+    "id": "9",
+    "timestamp": "14:22:56",
+    "title": "Document uploaded",
+    "detail": "Board_Resolution.pdf (Board Resolution) · SHA-256 eccc228ec559…",
+    "tone": "neutral",
+    "actor": "merchant",
+    "ts": "2026-10-02T14:22:56.226619+00:00"
+   },
+   {
+    "id": "10",
+    "timestamp": "14:22:56",
+    "title": "Document uploaded",
+    "detail": "Cancelled_Cheque.pdf (Cancelled Cheque / Bank Letter) · SHA-256 853ca78be7b7…",
+    "tone": "neutral",
+    "actor": "merchant",
+    "ts": "2026-10-02T14:22:56.234152+00:00"
+   },
+   {
+    "id": "11",
+    "timestamp": "14:22:56",
+    "title": "Document uploaded",
+    "detail": "Director_KYC_Anil_Sharma.pdf (Director KYC) · SHA-256 db81cfd535f7…",
+    "tone": "neutral",
+    "actor": "merchant",
+    "ts": "2026-10-02T14:22:56.242239+00:00"
+   },
+   {
+    "id": "12",
+    "timestamp": "14:22:56",
+    "title": "Document uploaded",
+    "detail": "Shareholding_Declaration.pdf (Shareholding / Beneficial Owner Declaration) · SHA-256 5bf27bbfa1bb…",
+    "tone": "neutral",
+    "actor": "merchant",
+    "ts": "2026-10-02T14:22:56.250904+00:00"
+   },
+   {
+    "id": "13",
+    "timestamp": "14:22:56",
+    "title": "Document uploaded",
+    "detail": "FSSAI_Licence.pdf (FSSAI Licence) · SHA-256 c841649459ec…",
+    "tone": "neutral",
+    "actor": "merchant",
+    "ts": "2026-10-02T14:22:56.257546+00:00"
+   },
+   {
+    "id": "14",
+    "timestamp": "14:22:56",
+    "title": "Extraction started",
+    "detail": "Company_PAN.pdf · Company PAN",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.310425+00:00"
+   },
+   {
+    "id": "15",
+    "timestamp": "14:22:56",
+    "title": "Company PAN extracted",
+    "detail": "4/5 fields · avg confidence 100% · 0s",
+    "tone": "success",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.328447+00:00"
+   },
+   {
+    "id": "16",
+    "timestamp": "14:22:56",
+    "title": "Extraction started",
+    "detail": "GST_Certificate.pdf · GST Certificate (REG-06)",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.342516+00:00"
+   },
+   {
+    "id": "17",
+    "timestamp": "14:22:56",
+    "title": "GST Certificate (REG-06) extracted",
+    "detail": "9/9 fields · avg confidence 100% · 0s",
+    "tone": "success",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.358652+00:00"
+   },
+   {
+    "id": "18",
+    "timestamp": "14:22:56",
+    "title": "Extraction started",
+    "detail": "Certificate_of_Incorporation.pdf · Certificate of Incorporation",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.372206+00:00"
+   },
+   {
+    "id": "19",
+    "timestamp": "14:22:56",
+    "title": "Certificate of Incorporation extracted",
+    "detail": "6/6 fields · avg confidence 100% · 0s",
+    "tone": "success",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.384768+00:00"
+   },
+   {
+    "id": "20",
+    "timestamp": "14:22:56",
+    "title": "Extraction started",
+    "detail": "Board_Resolution.pdf · Board Resolution",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.399245+00:00"
+   },
+   {
+    "id": "21",
+    "timestamp": "14:22:56",
+    "title": "Board Resolution extracted",
+    "detail": "6/7 fields · avg confidence 100% · 0s",
+    "tone": "success",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.410481+00:00"
+   },
+   {
+    "id": "22",
+    "timestamp": "14:22:56",
+    "title": "Extraction started",
+    "detail": "Cancelled_Cheque.pdf · Cancelled Cheque / Bank Letter",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.422900+00:00"
+   },
+   {
+    "id": "23",
+    "timestamp": "14:22:56",
+    "title": "Cancelled Cheque / Bank Letter extracted",
+    "detail": "6/6 fields · avg confidence 100% · 0s",
+    "tone": "success",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.437064+00:00"
+   },
+   {
+    "id": "24",
+    "timestamp": "14:22:56",
+    "title": "Extraction started",
+    "detail": "Director_KYC_Anil_Sharma.pdf · Director KYC",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.452120+00:00"
+   },
+   {
+    "id": "25",
+    "timestamp": "14:22:56",
+    "title": "Director KYC extracted",
+    "detail": "6/7 fields · avg confidence 100% · 0s",
+    "tone": "success",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.466060+00:00"
+   },
+   {
+    "id": "26",
+    "timestamp": "14:22:56",
+    "title": "Extraction started",
+    "detail": "Shareholding_Declaration.pdf · Shareholding / Beneficial Owner Declaration",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.480600+00:00"
+   },
+   {
+    "id": "27",
+    "timestamp": "14:22:56",
+    "title": "Shareholding / Beneficial Owner Declaration extracted",
+    "detail": "4/4 fields · avg confidence 100% · 0s",
+    "tone": "success",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.493150+00:00"
+   },
+   {
+    "id": "28",
+    "timestamp": "14:22:56",
+    "title": "Extraction started",
+    "detail": "FSSAI_Licence.pdf · FSSAI Licence",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.511491+00:00"
+   },
+   {
+    "id": "29",
+    "timestamp": "14:22:56",
+    "title": "FSSAI Licence extracted",
+    "detail": "7/7 fields · avg confidence 100% · 0s",
+    "tone": "success",
+    "actor": "agent",
+    "ts": "2026-10-02T14:22:56.524564+00:00"
+   },
+   {
+    "id": "30",
+    "timestamp": "14:23:09",
+    "title": "Stored in Cognee memory",
+    "detail": "Company_PAN.pdf added to the case knowledge base.",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:23:09.037623+00:00"
+   },
+   {
+    "id": "31",
+    "timestamp": "14:23:16",
+    "title": "Stored in Cognee memory",
+    "detail": "GST_Certificate.pdf added to the case knowledge base.",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:23:16.728529+00:00"
+   },
+   {
+    "id": "32",
+    "timestamp": "14:23:23",
+    "title": "Stored in Cognee memory",
+    "detail": "Certificate_of_Incorporation.pdf added to the case knowledge base.",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:23:23.766239+00:00"
+   },
+   {
+    "id": "33",
+    "timestamp": "14:23:30",
+    "title": "Stored in Cognee memory",
+    "detail": "Board_Resolution.pdf added to the case knowledge base.",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:23:30.909257+00:00"
+   },
+   {
+    "id": "34",
+    "timestamp": "14:23:38",
+    "title": "Stored in Cognee memory",
+    "detail": "Cancelled_Cheque.pdf added to the case knowledge base.",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:23:38.062612+00:00"
+   },
+   {
+    "id": "35",
+    "timestamp": "14:23:45",
+    "title": "Stored in Cognee memory",
+    "detail": "Director_KYC_Anil_Sharma.pdf added to the case knowledge base.",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:23:45.566864+00:00"
+   },
+   {
+    "id": "36",
+    "timestamp": "14:23:54",
+    "title": "Stored in Cognee memory",
+    "detail": "Shareholding_Declaration.pdf added to the case knowledge base.",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:23:54.080707+00:00"
+   },
+   {
+    "id": "37",
+    "timestamp": "14:24:02",
+    "title": "Stored in Cognee memory",
+    "detail": "FSSAI_Licence.pdf added to the case knowledge base.",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:02.620121+00:00"
+   },
+   {
+    "id": "38",
+    "timestamp": "14:24:02",
+    "title": "Building knowledge graph",
+    "detail": "Cognee is analysing 8 document(s).",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:02.665514+00:00"
+   },
+   {
+    "id": "39",
+    "timestamp": "14:24:19",
+    "title": "Knowledge graph ready",
+    "detail": "Ownership and entity relationships are searchable.",
+    "tone": "success",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.368048+00:00"
+   },
+   {
+    "id": "40",
+    "timestamp": "14:24:19",
+    "title": "Issue: Board-resolution signatory is a current director",
+    "detail": "Ravish Sahay is not a current director (MCA: Anil Sharma, Priya Sharma). The resolution itself is signed by Anil Sharma, Priya Sharma. A human must judge whether this is a valid delegation of authority.",
+    "tone": "warning",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.410998+00:00"
+   },
+   {
+    "id": "41",
+    "timestamp": "14:24:19",
+    "title": "Issue: Beneficial owners above 10% identified and KYC'd",
+    "detail": "Priya Sharma 30% direct has no KYC on file; Rakesh Sharma 18% effective (via Sharma Holdings LLP: 60% of its 30%) has no KYC on file; Meera Sharma 12% effective (via Sharma Holdings LLP: 40% of its 30%) has no KYC on file. 2 hidden behind a corporate shareholder.",
+    "tone": "warning",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.421021+00:00"
+   },
+   {
+    "id": "42",
+    "timestamp": "14:24:19",
+    "title": "Issue: Bank account holder matches legal name",
+    "detail": "The cheque pre-prints “Sharma Foods” but the legal name is “Sharma Foods Private Limited” (the company suffix is missing; the holder name must match exactly).",
+    "tone": "warning",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.430480+00:00"
+   },
+   {
+    "id": "43",
+    "timestamp": "14:24:19",
+    "title": "Issue: Address consistent (registered office / principal place / application)",
+    "detail": "Address drift: the GST certificate’s principal place says “12 Mahatma Gandhi Marg, Navi Mumbai - 400703, Maharashtra” but the application says “12 MG Road, Mumbai - 400001, Maharashtra”.",
+    "tone": "warning",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.437660+00:00"
+   },
+   {
+    "id": "44",
+    "timestamp": "14:24:19",
+    "title": "Cross-check complete · route ESCALATE",
+    "detail": "4 issues found, 6 checks passed: 2 need human judgement (Board-resolution signatory is a current director; Beneficial owners above 10% identified and KYC'd) and 2 the merchant can fix (Bank account holder matches legal name; Address consistent (registered office / principal place / application)). Escalate to a KAM decision.",
+    "tone": "warning",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.446294+00:00"
+   },
+   {
+    "id": "45",
+    "timestamp": "14:24:19",
+    "title": "Evidence highlights ready",
+    "detail": "Company_PAN.pdf: 4/5 fields located on the page",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.476013+00:00"
+   },
+   {
+    "id": "46",
+    "timestamp": "14:24:19",
+    "title": "Evidence highlights ready",
+    "detail": "GST_Certificate.pdf: 9/9 fields located on the page",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.495854+00:00"
+   },
+   {
+    "id": "47",
+    "timestamp": "14:24:19",
+    "title": "Evidence highlights ready",
+    "detail": "Certificate_of_Incorporation.pdf: 6/6 fields located on the page",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.512064+00:00"
+   },
+   {
+    "id": "48",
+    "timestamp": "14:24:19",
+    "title": "Evidence highlights ready",
+    "detail": "Board_Resolution.pdf: 5/7 fields located on the page",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.541509+00:00"
+   },
+   {
+    "id": "49",
+    "timestamp": "14:24:19",
+    "title": "Evidence highlights ready",
+    "detail": "Cancelled_Cheque.pdf: 6/6 fields located on the page",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.569007+00:00"
+   },
+   {
+    "id": "50",
+    "timestamp": "14:24:19",
+    "title": "Evidence highlights ready",
+    "detail": "Director_KYC_Anil_Sharma.pdf: 6/7 fields located on the page",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.598313+00:00"
+   },
+   {
+    "id": "51",
+    "timestamp": "14:24:19",
+    "title": "Evidence highlights ready",
+    "detail": "Shareholding_Declaration.pdf: 4/4 fields located on the page",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.640764+00:00"
+   },
+   {
+    "id": "52",
+    "timestamp": "14:24:19",
+    "title": "Evidence highlights ready",
+    "detail": "FSSAI_Licence.pdf: 7/7 fields located on the page",
+    "tone": "ai",
+    "actor": "agent",
+    "ts": "2026-10-02T14:24:19.673899+00:00"
+   }
+  ],
+  "cpv": null,
+  "vcip": null,
+  "contactName": null,
+  "contactPhone": null
+ }
+}

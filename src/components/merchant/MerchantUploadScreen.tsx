@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { 
   AlertTriangle, ArrowRight, Check, ChevronRight, FileCheck2, ShieldCheck, Trash2, 
   UploadCloud, Play, Pause, AlertCircle, Home, User, Bot, FileText, LockKeyhole, 
@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import type { MerchantCase } from '@/types/case';
 import type { UploadReport } from '@/services/api';
+import { AppLogo } from '@/components/shared/AppLogo';
+import { ShopVerificationCard } from '@/components/merchant/ShopVerificationCard';
 
 interface UploadStatus {
   name: string;
@@ -22,6 +24,8 @@ interface MerchantUploadScreenProps {
   caseData: MerchantCase; 
   onUploadFiles: (files: File[], slot: string | null) => Promise<UploadReport>;
   onOpenKAM: () => void; 
+  cases?: { id: string; name: string; stage: string }[];
+  onChooseCase?: (caseId: string) => void;
   view?: MerchantView; 
   onNavigate?: (view: MerchantView) => void; 
 }
@@ -132,9 +136,41 @@ const documentChecklist: DocumentRequirement[] = [
   }
 ];
 
-export function MerchantUploadScreen({ caseData, onUploadFiles, onOpenKAM, view = 'upload', onNavigate }: MerchantUploadScreenProps) {
-  const [uploadedMap, setUploadedMap] = useState<Record<string, string[]>>({});
-  const [allFiles, setAllFiles] = useState<string[]>([]);
+/** Which upload card each stored document type belongs to. */
+const SLOT_FOR_TYPE: Record<string, string> = {
+  pan: 'tax_gst', gst: 'tax_gst', bank_cheque: 'bank_details', director_kyc: 'signatory_kyc',
+  coi: 'corporate_docs', board_resolution: 'corporate_docs', shareholding: 'corporate_docs', fssai: 'corporate_docs',
+  electricity_bill: 'business_proof',
+};
+
+/** The merchant portal for ONE case. It is remounted (see `key`) when another case is chosen, so no state leaks between merchants. */
+export function MerchantUploadScreen(props: MerchantUploadScreenProps) {
+  return <MerchantPortal key={props.caseData.id} {...props} />;
+}
+
+function MerchantPortal({ caseData, onUploadFiles, onOpenKAM, cases = [], onChooseCase, view = 'upload', onNavigate }: MerchantUploadScreenProps) {
+  // start from what this case already holds on the server (the case's own uploaded documents)
+  const stored = (caseData.uploaded ?? []).filter((d) => d.status === 'uploaded');
+  const [uploadedMap, setUploadedMap] = useState<Record<string, string[]>>(() => {
+    const m: Record<string, string[]> = {};
+    for (const d of stored) { const slot = SLOT_FOR_TYPE[d.doc_type]; if (slot) m[slot] = [...(m[slot] ?? []), d.label]; }
+    return m;
+  });
+  const [allFiles, setAllFiles] = useState<string[]>(() => stored.map((d) => d.label));
+  // a file the KAM deleted (or a reset case) disappears here too, so the merchant can upload it again
+  const storedSig = stored.map((d) => `${d.doc_type}:${d.label}`).join('|');
+  const knownStored = useRef<Map<string, string>>(new Map(stored.map((d) => [d.doc_type, d.label])));
+  useEffect(() => {
+    const now = new Map(stored.map((d) => [d.doc_type, d.label] as [string, string]));
+    const gone = [...knownStored.current].filter(([type]) => !now.has(type));
+    if (gone.length) {
+      const labels = new Set(gone.map(([, label]) => label));
+      setAllFiles((files) => files.filter((f) => !labels.has(f)));
+      setUploadedMap((m) => Object.fromEntries(Object.entries(m).map(([slot, files]) => [slot, files.filter((f) => !labels.has(f))])));
+    }
+    knownStored.current = now;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storedSig]);
   const [playing, setPlaying] = useState(false);
   const [showDpdpModal, setShowDpdpModal] = useState(false);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
@@ -179,22 +215,12 @@ export function MerchantUploadScreen({ caseData, onUploadFiles, onOpenKAM, view 
   };
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col font-sans text-slate-900 selection:bg-blue-100 overflow-hidden">
+    <div className="h-screen bg-slate-50 flex flex-col font-sans text-slate-900 selection:bg-[#cfe9fc] overflow-hidden">
       {/* Global Header */}
       <header className="flex-none flex items-center justify-between px-6 py-3.5 bg-white border-b border-slate-200/80 z-20 shadow-2xs">
         <div className="flex items-center gap-8">
           <button className="flex items-center gap-3 hover:opacity-85 transition-opacity" onClick={onOpenKAM}>
-            <div className="w-9 h-9 rounded-xl bg-[#002970] text-[#00BAF2] flex items-center justify-center font-black text-base shadow-sm ring-2 ring-[#00BAF2]/30">
-              K
-            </div>
-            <div className="flex flex-col items-start leading-tight">
-              <strong className="text-[14px] font-extrabold tracking-widest text-[#002970]">
-                KARYAKARTA<span className="text-[#00BAF2] font-black ml-0.5">·AI</span>
-              </strong>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                Paytm Corporate Gateway
-              </span>
-            </div>
+            <AppLogo subtitle="Paytm Corporate Gateway" />
           </button>
           
           <div className="hidden md:flex items-center gap-3">
@@ -209,6 +235,19 @@ export function MerchantUploadScreen({ caseData, onUploadFiles, onOpenKAM, view 
           </div>
         </div>
 
+        {onChooseCase && cases.length > 0 && (
+          <label className="hidden md:flex items-center gap-2 text-[11px] font-bold text-slate-500">
+            Testing as
+            <select
+              aria-label="Open this merchant case"
+              value={caseData.id}
+              onChange={(e) => onChooseCase(e.target.value)}
+              className="text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 max-w-[260px]"
+            >
+              {cases.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.id}){c.stage ? ` · ${c.stage}` : ''}</option>)}
+            </select>
+          </label>
+        )}
         <button 
           onClick={() => go('account')} 
           className="flex items-center gap-3 hover:bg-[#e6f7fc]/50 px-3 py-1.5 rounded-xl transition-all border border-transparent hover:border-[#cfe9fc]"
@@ -285,9 +324,13 @@ export function MerchantUploadScreen({ caseData, onUploadFiles, onOpenKAM, view 
 
         {/* Dynamic Views in Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto relative bg-slate-50/50">
-          {view === 'stage1' && <StageOne onNavigate={go} />}
+          {caseData.cpv && view !== 'action' && (
+            <div className="max-w-3xl w-full mx-auto px-6 sm:px-10 pt-6"><ShopVerificationCard cpv={caseData.cpv} /></div>
+          )}
+          {view === 'stage1' && <StageOne onNavigate={go} caseData={caseData} />}
           {view === 'account' && (
             <AccountCenter 
+              caseData={caseData}
               onNavigate={go} 
               onOpenDpdp={() => setShowDpdpModal(true)} 
             />
@@ -330,7 +373,7 @@ export function MerchantUploadScreen({ caseData, onUploadFiles, onOpenKAM, view 
 
       {/* DPDP Act 2023 Official Statutory Agreement Modal */}
       {showDpdpModal && (
-        <DpdpAgreementModal onClose={() => setShowDpdpModal(false)} />
+        <DpdpAgreementModal caseData={caseData} onClose={() => setShowDpdpModal(false)} />
       )}
     </div>
   );
@@ -408,7 +451,11 @@ function PortalTracker({ current }: { current: number }) {
 // ----------------------------------------------------------------------
 // 2. View: Stage-1 Dashboard
 // ----------------------------------------------------------------------
-function StageOne({ onNavigate }: { onNavigate: (view: MerchantView) => void }) {
+function StageOne({ onNavigate, caseData }: { onNavigate: (view: MerchantView) => void; caseData: MerchantCase }) {
+  const merchantName = caseData.merchantName;
+  const docsTotal = (caseData.uploaded?.length ?? 0) + (caseData.missing?.length ?? 0);
+  const docsOpen = caseData.missing?.length ?? 0;
+  const stageLabel = caseData.stages?.find((s) => s.status === 'current')?.label;
   return (
     <main className="flex-1 max-w-5xl w-full mx-auto p-6 sm:p-10">
       <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-8">
@@ -443,7 +490,7 @@ function StageOne({ onNavigate }: { onNavigate: (view: MerchantView) => void }) 
                     Karyakarta Merchant Gateway · Live State
                   </span>
                 </div>
-                <h1 className="text-3xl font-extrabold text-[#002970] tracking-tight mb-2">Welcome, Sharma Foods</h1>
+                <h1 className="text-3xl font-extrabold text-[#002970] tracking-tight mb-2">Welcome, {merchantName}</h1>
                 <p className="text-sm text-slate-600 leading-relaxed max-w-md">
                   Your Stage 1 corporate account is active. Complete Stage 2 Corporate KYC to unlock unlimited settlements and remove restrictions.
                 </p>
@@ -451,7 +498,7 @@ function StageOne({ onNavigate }: { onNavigate: (view: MerchantView) => void }) 
               
               {/* Account Status Pill */}
               <div className="inline-flex items-center gap-2 bg-[#fff8eb] text-amber-800 px-3.5 py-1.5 rounded-full border border-amber-200 shadow-2xs whitespace-nowrap text-xs font-bold">
-                <AlertCircle size={14} className="text-amber-600" /> Cap reached · ₹50,000/month limit
+                <AlertCircle size={14} className="text-amber-600" /> {caseData.accountStatus ?? 'Capped · ₹50,000/month limit'}
               </div>
             </div>
 
@@ -492,7 +539,7 @@ function StageOne({ onNavigate }: { onNavigate: (view: MerchantView) => void }) 
               </div>
               <button 
                 onClick={() => onNavigate('upload')}
-                className="w-full sm:w-auto shrink-0 bg-[#00BAF2] hover:bg-[#00a3d4] text-[#002970] px-6 py-3.5 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-cyan-500/20 hover:-translate-y-0.5"
+                className="w-full sm:w-auto shrink-0 bg-[#00BAF2] hover:bg-[#00a3d4] text-[#002970] px-6 py-3.5 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-[#00BAF2]/20 hover:-translate-y-0.5"
               >
                 Upload Stage-2 Documents <ArrowRight size={16} />
               </button>
@@ -525,7 +572,7 @@ function StageOne({ onNavigate }: { onNavigate: (view: MerchantView) => void }) 
                 </div>
                 <div className="pt-0.5">
                   <strong className="block text-sm font-bold text-[#002970]">Corporate KYC</strong>
-                  <small className="text-xs font-semibold text-[#00BAF2] mt-0.5 block">4 Documents required</small>
+                  <small className="text-xs font-semibold text-[#00BAF2] mt-0.5 block">{docsTotal ? (docsOpen ? `${docsOpen} of ${docsTotal} documents still needed` : `All ${docsTotal} documents received`) : 'Documents required'}{stageLabel ? ` · Now: ${stageLabel}` : ''}</small>
                 </div>
               </div>
 
@@ -550,10 +597,10 @@ function StageOne({ onNavigate }: { onNavigate: (view: MerchantView) => void }) 
 // ----------------------------------------------------------------------
 // Account Center: Company Details & Verification (Relocated from Login)
 // ----------------------------------------------------------------------
-function AccountCenter({ onNavigate, onOpenDpdp }: { onNavigate: (view: MerchantView) => void; onOpenDpdp: () => void }) {
-  const [legalName, setLegalName] = useState('Sharma Foods Private Limited');
-  const [pan, setPan] = useState('AABCU9603R');
-  const [account, setAccount] = useState('918273645019');
+function AccountCenter({ caseData, onNavigate, onOpenDpdp }: { caseData: MerchantCase; onNavigate: (view: MerchantView) => void; onOpenDpdp: () => void }) {
+  const [legalName, setLegalName] = useState(caseData.legalName ?? '');
+  const [pan, setPan] = useState(caseData.pan ?? '');
+  const [account, setAccount] = useState('');
   const [consent, setConsent] = useState({ extraction: true, registries: true });
   const [isSaved, setIsSaved] = useState(false);
 
@@ -564,9 +611,8 @@ function AccountCenter({ onNavigate, onOpenDpdp }: { onNavigate: (view: Merchant
   };
 
   const handleFillDemo = () => {
-    setLegalName('Sharma Foods Private Limited');
-    setPan('AABCU9603R');
-    setAccount('918273645019');
+    setLegalName(caseData.legalName ?? '');
+    setPan(caseData.pan ?? '');
     setConsent({ extraction: true, registries: true });
   };
 
@@ -692,7 +738,7 @@ function AccountCenter({ onNavigate, onOpenDpdp }: { onNavigate: (view: Merchant
                 <label className="flex items-start gap-3 cursor-pointer group">
                   <input 
                     type="checkbox" 
-                    className="mt-1 w-4 h-4 rounded border-blue-300 text-[#002970] focus:ring-[#00BAF2] cursor-pointer transition-colors"
+                    className="mt-1 w-4 h-4 rounded border-[#b8e8f8] text-[#002970] focus:ring-[#00BAF2] cursor-pointer transition-colors"
                     checked={consent.extraction} 
                     onChange={(e) => setConsent({ ...consent, extraction: e.target.checked })} 
                   />
@@ -704,7 +750,7 @@ function AccountCenter({ onNavigate, onOpenDpdp }: { onNavigate: (view: Merchant
                 <label className="flex items-start gap-3 cursor-pointer group">
                   <input 
                     type="checkbox" 
-                    className="mt-1 w-4 h-4 rounded border-blue-300 text-[#002970] focus:ring-[#00BAF2] cursor-pointer transition-colors"
+                    className="mt-1 w-4 h-4 rounded border-[#b8e8f8] text-[#002970] focus:ring-[#00BAF2] cursor-pointer transition-colors"
                     checked={consent.registries} 
                     onChange={(e) => setConsent({ ...consent, registries: e.target.checked })} 
                   />
@@ -806,14 +852,14 @@ function UploadPortal({
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#0a5fb8] bg-[#e6f7fc] px-2.5 py-1 rounded-md border border-[#cfe9fc]">
               Stage 2 · Corporate KYC Verification
             </span>
             <button 
               onClick={onOpenDpdp}
-              className="text-[10px] font-bold text-slate-600 hover:text-blue-700 bg-white border border-slate-200 hover:border-blue-200 px-2.5 py-1 rounded-md shadow-2xs flex items-center gap-1 transition-all"
+              className="text-[10px] font-bold text-slate-600 hover:text-[#0a5fb8] bg-white border border-slate-200 hover:border-[#cfe9fc] px-2.5 py-1 rounded-md shadow-2xs flex items-center gap-1 transition-all"
             >
-              <ScrollText size={12} className="text-blue-600" /> DPDP Act Agreement
+              <ScrollText size={12} className="text-[#0a5fb8]" /> DPDP Act Agreement
             </button>
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Upload KYC Documents</h1>
@@ -907,7 +953,7 @@ function UploadPortal({
                 {/* Card Header Bar */}
                 <div className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${isCompleted ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${isCompleted ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-[#e6f7fc] text-[#0a5fb8] border-[#cfe9fc]'}`}>
                       {req.category === 'business' && <Building2 size={20} />}
                       {req.category === 'bank' && <Landmark size={20} />}
                       {req.category === 'tax' && <ReceiptText size={20} />}
@@ -976,12 +1022,12 @@ function UploadPortal({
                   <div className="p-5 sm:p-6 bg-slate-50/70 border-t border-slate-100 space-y-4">
                     <div>
                       <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-2 flex items-center gap-1.5">
-                        <FileText size={13} className="text-blue-600" /> Accepted Documents (Choose any one)
+                        <FileText size={13} className="text-[#0a5fb8]" /> Accepted Documents (Choose any one)
                       </h4>
                       <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700">
                         {req.acceptedDocuments.map((doc, idx) => (
                           <li key={idx} className="flex items-start gap-2 bg-white p-2.5 rounded-lg border border-slate-200/80">
-                            <span className="w-4 h-4 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                            <span className="w-4 h-4 rounded-full bg-[#e6f7fc] text-[#0a5fb8] text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                               {idx + 1}
                             </span>
                             <span className="leading-snug">{doc}</span>
@@ -1014,7 +1060,7 @@ function UploadPortal({
         <aside className="space-y-6">
           {/* Universal Quick Dropzone */}
           <div 
-            className="bg-white border-2 border-dashed border-slate-300 hover:border-blue-500 hover:bg-blue-50/20 transition-all rounded-2xl p-6 text-center cursor-pointer group flex flex-col items-center justify-center min-h-[260px] shadow-2xs"
+            className="bg-white border-2 border-dashed border-slate-300 hover:border-[#00BAF2] hover:bg-[#e6f7fc]/20 transition-all rounded-2xl p-6 text-center cursor-pointer group flex flex-col items-center justify-center min-h-[260px] shadow-2xs"
             onClick={() => fileRef.current?.click()} 
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => { e.preventDefault(); onDropFiles(Array.from(e.dataTransfer.files)); }}
@@ -1028,7 +1074,7 @@ function UploadPortal({
               onChange={onFiles} 
             />
             
-            <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border border-blue-100 shadow-2xs">
+            <div className="w-14 h-14 bg-[#e6f7fc] text-[#0a5fb8] rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform border border-[#cfe9fc] shadow-2xs">
               <UploadCloud size={28} strokeWidth={1.5} />
             </div>
             <h2 className="text-base font-bold text-slate-900 mb-1">Quick Batch Upload</h2>
@@ -1045,7 +1091,7 @@ function UploadPortal({
               <strong className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Uploads</strong>
               {uploads.slice(0, 12).map((u, i) => (
                 <div key={`${u.name}-${i}`} className="flex items-start gap-2 text-xs">
-                  <span className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${u.state === 'done' ? 'bg-emerald-100 text-emerald-700' : u.state === 'uploading' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                  <span className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${u.state === 'done' ? 'bg-emerald-100 text-emerald-700' : u.state === 'uploading' ? 'bg-[#cfe9fc] text-[#0a5fb8]' : 'bg-red-100 text-red-700'}`}>
                     {u.state === 'done' ? '✓' : u.state === 'uploading' ? '…' : '!'}
                   </span>
                   <div className="min-w-0">
@@ -1078,7 +1124,7 @@ function UploadPortal({
             <button 
               type="button"
               onClick={onOpenDpdp}
-              className="w-full bg-white hover:bg-blue-50/50 text-blue-700 border border-blue-200 font-bold text-xs py-2 px-3 rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+              className="w-full bg-white hover:bg-[#e6f7fc]/50 text-[#0a5fb8] border border-[#cfe9fc] font-bold text-xs py-2 px-3 rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
             >
               <Eye size={13} /> View Statutory PDF Agreement
             </button>
@@ -1095,7 +1141,7 @@ function UploadPortal({
       <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-slate-200 shadow-[0_-10px_30px_rgba(0,0,0,0.06)] p-4 sm:p-5 z-20">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xs">
+            <div className="w-8 h-8 rounded-full bg-[#e6f7fc] text-[#0a5fb8] flex items-center justify-center font-bold text-xs">
               {allFiles.length}
             </div>
             <div>
@@ -1143,7 +1189,7 @@ function ActionRequired({ onNavigate, caseData, onPickFiles, playing, onPlay }: 
       
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-8">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-3 block">Stage 2 · AI verification</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#0a5fb8] mb-3 block">Stage 2 · AI verification</span>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">One small correction needed</h1>
           <p className="text-sm text-slate-500 leading-relaxed max-w-md">We found a difference while checking your documents. Resolve it to continue.</p>
         </div>
@@ -1154,6 +1200,8 @@ function ActionRequired({ onNavigate, caseData, onPickFiles, playing, onPlay }: 
           View documents
         </button>
       </div>
+
+      {caseData.cpv && <ShopVerificationCard cpv={caseData.cpv} />}
 
       {/* Status Banner */}
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-4 mb-8 shadow-sm">
@@ -1177,7 +1225,7 @@ function ActionRequired({ onNavigate, caseData, onPickFiles, playing, onPlay }: 
             <AlertTriangle size={20} strokeWidth={2} />
           </div>
           <div>
-            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md mb-3 border border-blue-100">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[#0a5fb8] bg-[#e6f7fc] px-2.5 py-1 rounded-md mb-3 border border-[#cfe9fc]">
               <ShieldCheck size={12} /> AI Clarification
             </span>
             <h2 className="text-xl font-extrabold text-slate-900 mb-2">{first ? first.label : 'No corrections needed'}</h2>
@@ -1190,7 +1238,7 @@ function ActionRequired({ onNavigate, caseData, onPickFiles, playing, onPlay }: 
         {/* Voice Element */}
         <div className="px-6 sm:px-8 py-5 bg-slate-50 border-b border-slate-100 flex items-center gap-4">
           <button 
-            className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all shadow-sm ${playing ? 'bg-[#002970] text-[#00BAF2] shadow-blue-200' : 'bg-white text-[#002970] border border-slate-200 hover:border-[#00BAF2]'}`}
+            className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all shadow-sm ${playing ? 'bg-[#002970] text-[#00BAF2] shadow-[#cfe9fc]' : 'bg-white text-[#002970] border border-slate-200 hover:border-[#00BAF2]'}`}
             onClick={onPlay}
           >
             {playing ? <Pause size={16} strokeWidth={3} /> : <Play size={16} strokeWidth={3} className="ml-0.5" />}
@@ -1251,7 +1299,7 @@ function ActionRequired({ onNavigate, caseData, onPickFiles, playing, onPlay }: 
 // ----------------------------------------------------------------------
 // 5. Official DPDP Act 2023 Statutory Consent & PDF Agreement Modal
 // ----------------------------------------------------------------------
-function DpdpAgreementModal({ onClose }: { onClose: () => void }) {
+function DpdpAgreementModal({ onClose, caseData }: { onClose: () => void; caseData: MerchantCase }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-xs p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 flex flex-col max-h-[90vh] overflow-hidden">
@@ -1313,10 +1361,10 @@ function DpdpAgreementModal({ onClose }: { onClose: () => void }) {
               </div>
 
               <div className="shrink-0 flex flex-col items-center">
-                <div className="w-16 h-16 rounded-full border-2 border-blue-900/40 p-1 flex items-center justify-center">
-                  <div className="w-full h-full rounded-full border border-dashed border-blue-900/40 flex flex-col items-center justify-center text-[8px] font-sans font-extrabold text-blue-950 uppercase tracking-tighter text-center leading-none">
+                <div className="w-16 h-16 rounded-full border-2 border-[#002970]/40 p-1 flex items-center justify-center">
+                  <div className="w-full h-full rounded-full border border-dashed border-[#002970]/40 flex flex-col items-center justify-center text-[8px] font-sans font-extrabold text-[#002970] uppercase tracking-tighter text-center leading-none">
                     <span>GOV. OF INDIA</span>
-                    <ShieldCheck size={12} className="my-0.5 text-blue-800" />
+                    <ShieldCheck size={12} className="my-0.5 text-[#002970]" />
                     <span>DPDP 2023</span>
                   </div>
                 </div>
@@ -1333,8 +1381,8 @@ function DpdpAgreementModal({ onClose }: { onClose: () => void }) {
               </div>
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Data Principal (Merchant):</span>
-                <strong className="text-slate-900">Sharma Foods Private Limited</strong>
-                <p className="text-slate-500 text-[11px] mt-0.5">Corporate PAN: AABCU9603R</p>
+                <strong className="text-slate-900">{caseData.legalName}</strong>
+                <p className="text-slate-500 text-[11px] mt-0.5">Corporate PAN: {caseData.pan || 'not provided yet'}</p>
               </div>
             </div>
 
@@ -1372,7 +1420,7 @@ function DpdpAgreementModal({ onClose }: { onClose: () => void }) {
                   4. Right to Withdraw Consent &amp; Grievance Redressal
                 </h3>
                 <p>
-                  The Data Principal reserves the right to withdraw this consent or request data erasure under Section 12 of the DPDP Act, 2023 via the Merchant Account Center or by contacting the Data Protection Officer (DPO) at <span className="font-sans font-semibold text-blue-800">dpo@karyakarta.ai</span>.
+                  The Data Principal reserves the right to withdraw this consent or request data erasure under Section 12 of the DPDP Act, 2023 via the Merchant Account Center or by contacting the Data Protection Officer (DPO) at <span className="font-sans font-semibold text-[#002970]">dpo@karyakarta.ai</span>.
                 </p>
               </section>
             </div>

@@ -61,7 +61,7 @@ verified by a dry run, but **no real call has been placed yet**.
 
 ## 2. The agentic architecture: who does what
 
-Five teammates and two human roles. The orchestrator is not an LLM; it is the conductor.
+Seven teammates and two human roles. The orchestrator is not an LLM; it is the conductor.
 
 ```mermaid
 flowchart TB
@@ -76,6 +76,8 @@ flowchart TB
         VR[3. Verifier<br/>10 deterministic rules<br/>no AI pass/fail]
         TW[4. Digital Twin analyst<br/>Cognee knowledge graph]
         VC[5. Voice chaser<br/>Sarvam Samvaad agent, Hindi]
+        DR[6. Drishti<br/>shop verification from live photos<br/>+ V-CIP preparation]
+        SA[7. Settlement Agent<br/>post-onboarding monitoring<br/>velocity and settlement]
     end
 
     ORC -->|per document| RD
@@ -88,23 +90,30 @@ flowchart TB
     VC -.->|asks merchant to fix, never decides| MER([Merchant])
     KAM -->|submit| CMP
     CMP -->|approve / send back| KAM
+    CMP -->|approval opens shop verification| DR
+    MER -->|two live photos with GPS| DR
+    DR -->|CPV_VERIFIED, or NEEDS_REVIEW with evidence| KAM
+    DR -->|V-CIP questions, transcript, photos| CMP
 
     classDef human fill:#fff4d6,stroke:#c98a00;
     classDef ai fill:#e6f7fc,stroke:#00BAF2;
     class KAM,CMP,MER human;
-    class ORC,RD,VR,TW,VC ai;
+    class ORC,RD,VR,TW,VC,DR,SA ai;
 ```
 
 | # | Teammate | Technology | Autonomy | Hard limit |
 |---|---|---|---|---|
-| 1 | Orchestrator | n8n (2 workflows, 43 nodes) | Runs the whole pipeline on upload with no human step | Cannot approve; failures never stop a batch |
+| 1 | Orchestrator | n8n (4 workflows, 75 nodes) | Runs the whole pipeline on upload with no human step | Cannot approve; failures never stop a batch |
 | 2 | Reader | Sarvam Document Intelligence | Reads every document, locates every value on the page | Reads only; every value carries a confidence and a page box |
 | 3 | Verifier | Plain Python rules | Runs 10 cross-document checks and triages the case | Deterministic, repeatable, evidence on every result. **No LLM decides pass or fail** |
 | 4 | Digital Twin analyst | Cognee Cloud (graph + its LLM) | Builds the merchant graph, answers questions with sources | Explains and answers; never decides |
 | 5 | Voice chaser | Sarvam Samvaad (Hindi, call agent) | Speaks to the merchant about merchant-fixable items | Never discusses items needing KAM judgement; refuses OTPs; promises nothing. Triggered by the KAM today |
+| 6 | Drishti | Sarvam (signboard reading, Hindi transliteration) + geo and image checks in Python; second Sarvam agent for the V-CIP pre-interview | Verifies the shop from two live photos and issues `CPV_VERIFIED` on its own when four hard checks pass; prepares the V-CIP sign-off | **Never fails a shop**: anything doubtful goes to a person. Cannot sign off V-CIP. No face matching. See `05_DRISHTI_CPV_AND_VCIP.md` |
+| 7 | Settlement Agent | Python thresholds and arithmetic + Cognee twin (recall and store) + Sarvam (brief, numbers verified) + n8n | After go-live: compares the last 48 h with the 30-day baseline; on an anomaly reconciles, investigates, opens an investigation case and escalates it to the KAM queue | **Recommends only; never holds or releases money.** Only two fixed thresholds start it. Runs on a synthetic ledger. See `06_SETTLEMENT_AGENT.md` |
 
-**People decide.** `approve`, `submit_to_compliance`, `send_back`, `compliance_approve` are refused by the API with HTTP
-403 unless the actor is the right human role, and compliance can act only after the KAM has submitted (stage 5).
+**People decide.** `approve`, `submit_to_compliance`, `send_back`, `compliance_approve`, `cpv_approve`, `cpv_retake`, `vcip_call` and `vcip_signoff` are
+refused by the API with HTTP 403 unless the actor is the right human role, and each opens only at its stage (Compliance after the KAM submits, the KAM's CPV approval at
+stage 6, V-CIP sign-off at stage 7). The one autonomous stage change is Drishti's own `CPV_VERIFIED`, which the brief asks for and which is only issued when four hard checks pass.
 
 ---
 
@@ -244,7 +253,10 @@ stateDiagram-v2
 
     KAMReview --> Checker: KAM approves (human)
     Checker --> KAMReview: compliance sends back (human)
-    Checker --> SettlementTest: compliance approves (human)
+    Checker --> CPV: compliance approves (human)
+    CPV --> VCIP: Drishti CPV_VERIFIED, or the KAM approves after review (human)
+    CPV --> CPV: KAM asks for new photos
+    VCIP --> SettlementTest: authorised official signs off (human)
     SettlementTest --> ESign
     ESign --> LiveUnlimited
 ```
@@ -255,7 +267,7 @@ stateDiagram-v2
 | **ASK** | something the merchant can fix (wrong name on cheque, address drift, missing document) | agent explains in Hindi and asks for the right document |
 | **ESCALATE** | any check marked "needs human judgement" (signatory is not a director; a hidden beneficial owner) | KAM decides, with all evidence attached |
 
-Stages 6 to 8 (settlement test, e-agreement, live unlimited) are modelled as lifecycle labels; the integrations behind them
+Stages 6 and 7 are Drishti's contact point verification and the V-CIP sign-off (built, see `05_DRISHTI_CPV_AND_VCIP.md`). Stages 8 to 10 (settlement test, e-agreement, live unlimited) are lifecycle labels; the integrations behind them
 are not built (see section 11).
 
 ---
@@ -269,16 +281,18 @@ erDiagram
     CASE ||--o{ VOICECALL : has
     CASE ||--o{ AUDITEVENT : "append-only"
     CASE ||--o{ CRMOVERRIDE : "KAM edits"
+    CASE ||--o{ CPVSESSION : "shop verification"
+    CASE ||--o| VCIPRECORD : "video KYC preparation"
     CASE {
         string id "KYB-20814"
         string slug "cognee dataset suffix"
         string entity_type
-        int stage "1 to 8"
+        int stage "1 to 10"
         string route "AUTO ASK ESCALATE"
         string graph_status
     }
     DOCUMENT {
-        string doc_type "pan gst coi board bank kyc shareholding fssai"
+        string doc_type "pan gst coi board bank kyc shareholding fssai electricity_bill"
         string sha256
         json fields "value, confidence, page, boxes"
         json checks
@@ -295,6 +309,17 @@ erDiagram
         string outcome
         json transcript
         string memory_status
+    }
+    CPVSESSION {
+        string token "one-time capture link"
+        string status "waiting captured verified needs_review"
+        json captures "photo path, GPS, bearing, time"
+        json result "verdict, five checks, distance"
+    }
+    VCIPRECORD {
+        string status "queued interviewed signed_off"
+        json questions "randomized, with expected answers"
+        json transcript
     }
 ```
 
@@ -325,6 +350,7 @@ flowchart LR
 | Escalations stay with humans | Voice context | Checks marked "escalate" are excluded from the agent's variables |
 | Agent safety rules | Voice agent prompt | No OTP/PIN/account numbers on the call, no promises of approval, documents only via the app (verified live) |
 | Every value traceable | Extraction | Value, confidence, page and box shown next to the source |
+| Photos are live and in the right place | Drishti | Camera-stream capture, no camera EXIF, server clock within 120 s, GPS accuracy, both photos at the same place, distance to the declared address. A web page cannot prove liveness, so doubtful cases go to a person |
 | Honest failure | Everywhere | Errors recorded on the case (extraction error, memory failed, call not placed); nothing is silently faked |
 
 Person-level four-eyes (maker is not the checker) needs real user identities. The prototype has roles, not accounts.

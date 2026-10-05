@@ -18,11 +18,13 @@ import type { CaseRow, Route } from '@/services/api';
 
 interface KamDashboardViewProps {
   onOpenCase: (caseId: string) => void;
+  onOpenAsMerchant?: (caseId: string) => void;
+  initialFilter?: string;
 }
 
-export function KamDashboardView({ onOpenCase }: KamDashboardViewProps) {
+export function KamDashboardView({ onOpenCase, onOpenAsMerchant, initialFilter = 'all' }: KamDashboardViewProps) {
   const { list, loading, error } = useLiveCases();
-  const [filterStage, setFilterStage] = useState<string>('all');
+  const [filterStage, setFilterStage] = useState<string>(initialFilter);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   const items = useMemo(() => list?.items ?? [], [list]);
@@ -167,7 +169,7 @@ export function KamDashboardView({ onOpenCase }: KamDashboardViewProps) {
                       <div className="w-8 h-8 rounded-lg bg-[#002970] text-[#00BAF2] font-black text-xs flex items-center justify-center shrink-0">{c.merchantName.slice(0, 2).toUpperCase()}</div>
                       <div>
                         <strong className="block text-xs font-bold text-slate-900 group-hover:text-[#002970]">{c.merchantName}</strong>
-                        <small className="block text-[10px] text-slate-500">{c.id} · {c.legalName}</small>
+                        <small className="block text-[10px] text-slate-500">{c.id} · {c.legalName}{c.kind === 'investigation' ? <span className="ml-1.5 px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 font-extrabold text-[9px] uppercase">Settlement investigation</span> : null}</small>
                       </div>
                     </div>
                   </td>
@@ -184,6 +186,15 @@ export function KamDashboardView({ onOpenCase }: KamDashboardViewProps) {
                     </div>
                   </td>
                   <td className="py-4 px-5 text-right">
+                    {onOpenAsMerchant && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onOpenAsMerchant(c.parentCaseId ?? c.id); }}
+                        className="mr-2 inline-flex items-center px-3 py-1.5 rounded-lg bg-[#e6f7fc] border border-[#cfe9fc] text-[#002970] text-xs font-bold hover:bg-[#d6f2fa]"
+                        title="Open this case in the merchant portal (to test shop verification)"
+                      >
+                        View as merchant
+                      </button>
+                    )}
                     <button
                       onClick={(e) => { e.stopPropagation(); onOpenCase(c.id); }}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-[#00BAF2] hover:text-[#002970] text-slate-700 text-xs font-bold transition-all shadow-2xs group-hover:bg-[#002970] group-hover:text-white group-hover:border-[#002970]"
@@ -237,7 +248,7 @@ function StagePill({ stage, route }: { stage: string; route: Route | null }) {
 const FLAG_STYLE = {
   critical: 'bg-rose-50 text-rose-800 border-rose-200',
   warning: 'bg-amber-50 text-amber-800 border-amber-200',
-  info: 'bg-blue-50 text-blue-800 border-blue-200',
+  info: 'bg-[#e6f7fc] text-[#002970] border-[#cfe9fc]',
   ok: 'bg-emerald-50 text-emerald-800 border-emerald-200',
 } as const;
 

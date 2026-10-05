@@ -1,1 +1,351 @@
-{"ok":true,"data":{"id":"KYB-20818","merchantName":"Apex Cloud Telecom","legalName":"Apex Cloud Telecom Limited","entityType":"Public Limited","cin":"L64200DL2012PLC241903","gstin":"07AAACA9087D1Z9","pan":"AAACA9087D","registeredAddress":"Tower B, Nehru Place, New Delhi - 110019","status":"ready_for_review","accountStatus":"Live, capped · ₹50k","stage":4,"stages":[{"id":1,"label":"Invited","status":"done"},{"id":2,"label":"Docs Upload","status":"done"},{"id":3,"label":"AI Verifying","status":"done"},{"id":4,"label":"KAM Review","status":"current"},{"id":5,"label":"Checker (Compliance)","status":"upcoming"},{"id":6,"label":"Bank Settlement Test","status":"upcoming"},{"id":7,"label":"e-Agreement Sign","status":"upcoming"},{"id":8,"label":"Live Unlimited","status":"upcoming"}],"route":"AUTO","summary":"All 5 applicable checks passed. Ready for one-click KAM approval. (Seeded demo result (synthetic, no documents processed).)","graphStatus":"none","completion":100,"lastUpdated":"9 min ago","documents":[],"checklist":[{"doc_type":"pan","label":"Company PAN","status":"uploaded","doc_id":null},{"doc_type":"gst","label":"GST Certificate (REG-06)","status":"uploaded","doc_id":null},{"doc_type":"coi","label":"Certificate of Incorporation","status":"uploaded","doc_id":null},{"doc_type":"board_resolution","label":"Board Resolution","status":"uploaded","doc_id":null},{"doc_type":"bank_cheque","label":"Cancelled Cheque / Bank Letter","status":"uploaded","doc_id":null},{"doc_type":"director_kyc","label":"Director KYC","status":"uploaded","doc_id":null},{"doc_type":"shareholding","label":"Shareholding / Beneficial Owner Declaration","status":"uploaded","doc_id":null}],"uploaded":[{"doc_type":"pan","label":"Company PAN","status":"uploaded","doc_id":null},{"doc_type":"gst","label":"GST Certificate (REG-06)","status":"uploaded","doc_id":null},{"doc_type":"coi","label":"Certificate of Incorporation","status":"uploaded","doc_id":null},{"doc_type":"board_resolution","label":"Board Resolution","status":"uploaded","doc_id":null},{"doc_type":"bank_cheque","label":"Cancelled Cheque / Bank Letter","status":"uploaded","doc_id":null},{"doc_type":"director_kyc","label":"Director KYC","status":"uploaded","doc_id":null},{"doc_type":"shareholding","label":"Shareholding / Beneficial Owner Declaration","status":"uploaded","doc_id":null}],"missing":[],"findings":[],"checks":[{"id":"legal_name_consistent","label":"Legal name consistent across documents","status":"pass","detail":"Seeded demo result (synthetic, no documents processed).","evidence":[{"doc_id":null,"doc_type":null,"field":null,"page":null,"value":null,"source":"Seeded demo data"}],"action":null},{"id":"pan_entity_type","label":"PAN valid and matches entity type","status":"pass","detail":"Seeded demo result (synthetic, no documents processed).","evidence":[{"doc_id":null,"doc_type":null,"field":null,"page":null,"value":null,"source":"Seeded demo data"}],"action":null},{"id":"gstin_pan","label":"GSTIN embeds the company PAN","status":"skip","detail":"Seeded demo result (synthetic, no documents processed).","evidence":[{"doc_id":null,"doc_type":null,"field":null,"page":null,"value":null,"source":"Seeded demo data"}],"action":null},{"id":"cin_match","label":"CIN valid and matches the Certificate of Incorporation","status":"pass","detail":"Seeded demo result (synthetic, no documents processed).","evidence":[{"doc_id":null,"doc_type":null,"field":null,"page":null,"value":null,"source":"Seeded demo data"}],"action":null},{"id":"signatory_is_director","label":"Board-resolution signatory is a current director","status":"skip","detail":"Seeded demo result (synthetic, no documents processed).","evidence":[{"doc_id":null,"doc_type":null,"field":null,"page":null,"value":null,"source":"Seeded demo data"}],"action":null},{"id":"beneficial_owners","label":"Beneficial owners above 10% identified and KYC'd","status":"pass","detail":"Seeded demo result (synthetic, no documents processed).","evidence":[{"doc_id":null,"doc_type":null,"field":null,"page":null,"value":null,"source":"Seeded demo data"}],"action":null},{"id":"bank_holder_name","label":"Bank account holder matches legal name","status":"skip","detail":"Seeded demo result (synthetic, no documents processed).","evidence":[{"doc_id":null,"doc_type":null,"field":null,"page":null,"value":null,"source":"Seeded demo data"}],"action":null},{"id":"address_consistent","label":"Address consistent (registered office / principal place / application)","status":"skip","detail":"Seeded demo result (synthetic, no documents processed).","evidence":[{"doc_id":null,"doc_type":null,"field":null,"page":null,"value":null,"source":"Seeded demo data"}],"action":null},{"id":"required_documents","label":"Required documents present","status":"pass","detail":"Seeded demo result (synthetic, no documents processed).","evidence":[{"doc_id":null,"doc_type":null,"field":null,"page":null,"value":null,"source":"Seeded demo data"}],"action":null},{"id":"licence","label":"Industry licence present and valid","status":"skip","detail":"Seeded demo result (synthetic, no documents processed).","evidence":[{"doc_id":null,"doc_type":null,"field":null,"page":null,"value":null,"source":"Seeded demo data"}],"action":null}],"timeline":[{"id":"5","timestamp":"14:22:54","title":"Application submitted","detail":"Merchant submitted onboarding details (Stage 1 live, ₹50k cap).","tone":"neutral","actor":"merchant","ts":"2026-10-02T14:22:54.484857+00:00"}]}}
+{
+ "ok": true,
+ "data": {
+  "id": "KYB-20818",
+  "merchantName": "Apex Cloud Telecom",
+  "legalName": "Apex Cloud Telecom Limited",
+  "entityType": "Public Limited",
+  "cin": "L64200DL2012PLC241903",
+  "gstin": "07AAACA9087D1Z9",
+  "pan": "AAACA9087D",
+  "registeredAddress": "Tower B, Nehru Place, New Delhi - 110019",
+  "status": "ready_for_review",
+  "accountStatus": "Live, capped · ₹50k",
+  "stage": 4,
+  "stages": [
+   {
+    "id": 1,
+    "label": "Invited",
+    "status": "done"
+   },
+   {
+    "id": 2,
+    "label": "Docs Upload",
+    "status": "done"
+   },
+   {
+    "id": 3,
+    "label": "AI Verifying",
+    "status": "done"
+   },
+   {
+    "id": 4,
+    "label": "KAM Review",
+    "status": "current"
+   },
+   {
+    "id": 5,
+    "label": "Checker (Compliance)",
+    "status": "upcoming"
+   },
+   {
+    "id": 6,
+    "label": "Contact Point Verification",
+    "status": "upcoming"
+   },
+   {
+    "id": 7,
+    "label": "V-CIP Sign-off",
+    "status": "upcoming"
+   },
+   {
+    "id": 8,
+    "label": "Bank Settlement Test",
+    "status": "upcoming"
+   },
+   {
+    "id": 9,
+    "label": "e-Agreement Sign",
+    "status": "upcoming"
+   },
+   {
+    "id": 10,
+    "label": "Live Unlimited",
+    "status": "upcoming"
+   }
+  ],
+  "route": "AUTO",
+  "summary": "All 5 applicable checks passed. Ready for one-click KAM approval. (Seeded demo result (synthetic, no documents processed).)",
+  "graphStatus": "none",
+  "completion": 100,
+  "lastUpdated": "9 min ago",
+  "documents": [],
+  "checklist": [
+   {
+    "doc_type": "pan",
+    "label": "Company PAN",
+    "status": "uploaded",
+    "doc_id": null
+   },
+   {
+    "doc_type": "gst",
+    "label": "GST Certificate (REG-06)",
+    "status": "uploaded",
+    "doc_id": null
+   },
+   {
+    "doc_type": "coi",
+    "label": "Certificate of Incorporation",
+    "status": "uploaded",
+    "doc_id": null
+   },
+   {
+    "doc_type": "board_resolution",
+    "label": "Board Resolution",
+    "status": "uploaded",
+    "doc_id": null
+   },
+   {
+    "doc_type": "bank_cheque",
+    "label": "Cancelled Cheque / Bank Letter",
+    "status": "uploaded",
+    "doc_id": null
+   },
+   {
+    "doc_type": "director_kyc",
+    "label": "Director KYC",
+    "status": "uploaded",
+    "doc_id": null
+   },
+   {
+    "doc_type": "shareholding",
+    "label": "Shareholding / Beneficial Owner Declaration",
+    "status": "uploaded",
+    "doc_id": null
+   }
+  ],
+  "uploaded": [
+   {
+    "doc_type": "pan",
+    "label": "Company PAN",
+    "status": "uploaded",
+    "doc_id": null
+   },
+   {
+    "doc_type": "gst",
+    "label": "GST Certificate (REG-06)",
+    "status": "uploaded",
+    "doc_id": null
+   },
+   {
+    "doc_type": "coi",
+    "label": "Certificate of Incorporation",
+    "status": "uploaded",
+    "doc_id": null
+   },
+   {
+    "doc_type": "board_resolution",
+    "label": "Board Resolution",
+    "status": "uploaded",
+    "doc_id": null
+   },
+   {
+    "doc_type": "bank_cheque",
+    "label": "Cancelled Cheque / Bank Letter",
+    "status": "uploaded",
+    "doc_id": null
+   },
+   {
+    "doc_type": "director_kyc",
+    "label": "Director KYC",
+    "status": "uploaded",
+    "doc_id": null
+   },
+   {
+    "doc_type": "shareholding",
+    "label": "Shareholding / Beneficial Owner Declaration",
+    "status": "uploaded",
+    "doc_id": null
+   }
+  ],
+  "missing": [],
+  "findings": [],
+  "checks": [
+   {
+    "id": "legal_name_consistent",
+    "label": "Legal name consistent across documents",
+    "status": "pass",
+    "detail": "Seeded demo result (synthetic, no documents processed).",
+    "evidence": [
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": null,
+      "page": null,
+      "value": null,
+      "source": "Seeded demo data"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "pan_entity_type",
+    "label": "PAN valid and matches entity type",
+    "status": "pass",
+    "detail": "Seeded demo result (synthetic, no documents processed).",
+    "evidence": [
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": null,
+      "page": null,
+      "value": null,
+      "source": "Seeded demo data"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "gstin_pan",
+    "label": "GSTIN embeds the company PAN",
+    "status": "skip",
+    "detail": "Seeded demo result (synthetic, no documents processed).",
+    "evidence": [
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": null,
+      "page": null,
+      "value": null,
+      "source": "Seeded demo data"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "cin_match",
+    "label": "CIN valid and matches the Certificate of Incorporation",
+    "status": "pass",
+    "detail": "Seeded demo result (synthetic, no documents processed).",
+    "evidence": [
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": null,
+      "page": null,
+      "value": null,
+      "source": "Seeded demo data"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "signatory_is_director",
+    "label": "Board-resolution signatory is a current director",
+    "status": "skip",
+    "detail": "Seeded demo result (synthetic, no documents processed).",
+    "evidence": [
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": null,
+      "page": null,
+      "value": null,
+      "source": "Seeded demo data"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "beneficial_owners",
+    "label": "Beneficial owners above 10% identified and KYC'd",
+    "status": "pass",
+    "detail": "Seeded demo result (synthetic, no documents processed).",
+    "evidence": [
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": null,
+      "page": null,
+      "value": null,
+      "source": "Seeded demo data"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "bank_holder_name",
+    "label": "Bank account holder matches legal name",
+    "status": "skip",
+    "detail": "Seeded demo result (synthetic, no documents processed).",
+    "evidence": [
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": null,
+      "page": null,
+      "value": null,
+      "source": "Seeded demo data"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "address_consistent",
+    "label": "Address consistent (registered office / principal place / application)",
+    "status": "skip",
+    "detail": "Seeded demo result (synthetic, no documents processed).",
+    "evidence": [
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": null,
+      "page": null,
+      "value": null,
+      "source": "Seeded demo data"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "required_documents",
+    "label": "Required documents present",
+    "status": "pass",
+    "detail": "Seeded demo result (synthetic, no documents processed).",
+    "evidence": [
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": null,
+      "page": null,
+      "value": null,
+      "source": "Seeded demo data"
+     }
+    ],
+    "action": null
+   },
+   {
+    "id": "licence",
+    "label": "Industry licence present and valid",
+    "status": "skip",
+    "detail": "Seeded demo result (synthetic, no documents processed).",
+    "evidence": [
+     {
+      "doc_id": null,
+      "doc_type": null,
+      "field": null,
+      "page": null,
+      "value": null,
+      "source": "Seeded demo data"
+     }
+    ],
+    "action": null
+   }
+  ],
+  "timeline": [
+   {
+    "id": "5",
+    "timestamp": "14:22:54",
+    "title": "Application submitted",
+    "detail": "Merchant submitted onboarding details (Stage 1 live, ₹50k cap).",
+    "tone": "neutral",
+    "actor": "merchant",
+    "ts": "2026-10-02T14:22:54.484857+00:00"
+   }
+  ],
+  "cpv": null,
+  "vcip": null,
+  "contactName": null,
+  "contactPhone": null
+ }
+}

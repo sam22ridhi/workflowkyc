@@ -4,8 +4,10 @@ from datetime import datetime, timezone
 from sqlmodel import Session, select
 
 from app.doctypes import DOC_TYPES, ENTITY_LABELS, required_for
+from app import vcip as vcip_module
 from app import voice_agent
-from app.models import STAGES, AuditEvent, Case, CheckResult, Document, VoiceCall
+from app.drishti import service as drishti_service
+from app.models import STAGES, AuditEvent, Case, CheckResult, Document, VcipRecord, VoiceCall
 from app.schemas_api import (
     CaseDetail, CaseRow, ChecklistItem, CheckOut, DocumentOut, FieldValue, Finding, Flag,
     LegacyDocument, StageItem, TimelineItem, VoiceCallOut,
@@ -19,6 +21,7 @@ STAGE_LABELS = {
     "needs_attention": "Escalated to KAM",
     "ready_for_review": "Ready for Review",
     "live": "Live / Approved",
+    "closed": "Closed",
 }
 
 
@@ -69,6 +72,8 @@ def _legacy_case_status(case: Case) -> str:
 
 
 def checklist_for(case: Case, docs: list[Document]) -> list[ChecklistItem]:
+    if case.kind == "investigation":      # a settlement investigation has no onboarding documents
+        return []
     by_type: dict[str, Document] = {}
     for d in docs:
         by_type.setdefault(d.doc_type, d)
@@ -110,7 +115,7 @@ def case_detail(session: Session, case: Case) -> CaseDetail:
     return CaseDetail(
         id=case.id, merchantName=case.merchant_name, legalName=case.legal_name,
         entityType=ENTITY_LABELS.get(case.entity_type, case.entity_type), cin=case.cin, gstin=case.gstin,
-        pan=case.pan, registeredAddress=case.registered_address, contactName=case.contact_name, contactPhone=case.contact_phone, status=_legacy_case_status(case),
+        pan=case.pan, registeredAddress=case.registered_address, contactName=case.contact_name, contactPhone=case.contact_phone, kind=case.kind, parentCaseId=case.parent_case_id, status=_legacy_case_status(case),
         accountStatus=case.account_status, stage=case.stage,
         stages=[StageItem(id=i + 1, label=l,
                           status="done" if i + 1 < case.stage else "current" if i + 1 == case.stage else "upcoming")
@@ -132,6 +137,8 @@ def case_detail(session: Session, case: Case) -> CaseDetail:
                                  transcript=v.transcript or [], callId=v.call_id, memoryStatus=v.memory_status,
                                  timestamp=v.created_at.strftime("%d %b %H:%M"))
                     for v in session.exec(select(VoiceCall).where(VoiceCall.case_id == case.id).order_by(VoiceCall.created_at.desc()))],
+        cpv=drishti_service.view(drishti_service.active_session(session, case.id)),
+        vcip=vcip_module.view(session, case),
         timeline=[TimelineItem(id=str(e.id), timestamp=e.ts.strftime("%H:%M:%S"), title=e.action, detail=e.detail,
                                tone=e.tone, actor=e.actor, ts=_iso(e.ts)) for e in events],
     )
@@ -152,6 +159,8 @@ def case_row(session: Session, case: Case) -> CaseRow:
     confs = [f["confidence"] for d in docs for f in (d.fields or {}).values()
              if isinstance(f, dict) and isinstance(f.get("confidence"), (int, float))]
     mins = sla_minutes(case)
+    cpv = drishti_service.active_session(session, case.id)
+    vrec = session.exec(select(VcipRecord).where(VcipRecord.case_id == case.id)).first()
     return CaseRow(
         id=case.id, merchantName=case.merchant_name, legalName=case.legal_name,
         entityType=ENTITY_LABELS.get(case.entity_type, case.entity_type),
@@ -163,4 +172,6 @@ def case_row(session: Session, case: Case) -> CaseRow:
                      "processed": (sum(1 for c in checklist if c.status == "uploaded") if case.seed_missing is not None and not docs
                                    else sum(1 for d in docs if d.status in PROCESSED))},
         lastUpdated=_ago(case.updated_at),
+        stageName=STAGES[case.stage - 1] if 1 <= case.stage <= len(STAGES) else "",
+        kind=case.kind, parentCaseId=case.parent_case_id, cpvStatus=cpv.status if cpv else None, vcipStatus=vrec.status if vrec else None,
     )

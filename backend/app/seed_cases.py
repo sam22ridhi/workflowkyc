@@ -65,13 +65,15 @@ _PRECOMPUTED = {
 }
 
 
-def _seed_precomputed_results(session: Session) -> None:
+def _seed_precomputed_results(session: Session, only: set[str] | None = None) -> None:
     from app.checks import cross_check as cc   # local import: cross_check imports app.models / app.db
     from app.models import CheckResult
     from app.registry import mock_registry
 
     seeded_evidence = [{"doc_id": None, "doc_type": None, "field": None, "page": None, "value": None, "source": "Seeded demo data"}]
     for case_id, (route, missing, overrides) in _PRECOMPUTED.items():
+        if only is not None and case_id not in only:
+            continue
         case = session.get(Case, case_id)
         checks = []
         for c in cc.evaluate(case, [], mock_registry.lookup(case_id)):   # the 10 checks, with their labels

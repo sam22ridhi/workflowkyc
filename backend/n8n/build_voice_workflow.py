@@ -1,6 +1,6 @@
 """Generates n8n/karyakarta_voice_chase.n8n.json. Usage: python n8n/build_voice_workflow.py n8n/karyakarta_voice_chase.n8n.json
 
-Flow A, start (POST /webhook/karyakarta-voice-chase {case_id, to_number}):
+Flow A, start (POST /webhook/karyakarta-voice-chase {case_id, to_number, kind?}); kind is "chase" (default) or "vcip" (the video-KYC pre-interview):
     KAM clicks Send Voice Chase -> backend validates the number -> here: get the agent context -> place the call
     (backend -> Sarvam Instant Outbound, from the connected Twilio number) -> wait and poll until the call ends ->
     record the outcome and transcript.
@@ -57,6 +57,7 @@ BB = "={{ $('Settings (result)').first().json.backend_url }}"
 CB = "{{ $('Settings (result)').first().json.case_id }}"
 CALL_ID = "{{ $('Record call on case').first().json.data.voice_call_id }}"
 PLACED = "$('Place call (Sarvam)').first().json.data"
+KIND_A = "$('Settings (start)').first().json.kind"
 
 nodes = [
     # ------------------------------------------------ Flow A: place the call and follow it
@@ -67,14 +68,16 @@ nodes = [
         ("backend_url", "http://host.docker.internal:8765", "string"),
         ("case_id", "={{ $json.body.case_id }}", "string"),
         ("to_number", "={{ $json.body.to_number }}", "string"),
+        ("kind", "={{ $json.body.kind || 'chase' }}", "string"),                    # chase (merchant follow-up) | vcip (video-KYC pre-interview)
     ]),
-    http("Get agent context", [440, 200], "GET", BA + f"/api/cases/{CA}/voice-chase/context"),
+    http("Get agent context", [440, 200], "GET", BA + f"/api/cases/{CA}/voice-chase/context?kind={{{{ {KIND_A} }}}}"),
     if_node("Anything to chase?", [660, 200], "={{ $json.data.should_call }}", "boolean", "true"),
     http("Place call (Sarvam)", [900, 120], "POST", BA + f"/api/cases/{CA}/voice-chase/call", timeout=45000,
-         body="={{ JSON.stringify({ to_number: $('Settings (start)').first().json.to_number }) }}", onError="continueRegularOutput"),
+         body="={{ JSON.stringify({ to_number: $('Settings (start)').first().json.to_number, kind: $('Settings (start)').first().json.kind }) }}", onError="continueRegularOutput"),
     if_node("Call placed?", [1120, 120], "={{ $json.ok === true }}", "boolean", "true"),
     setnode("Call not placed", [1340, 260], [
         ("case_id", "={{ $('Settings (start)').first().json.case_id }}", "string"),
+        ("kind", "={{ $('Settings (start)').first().json.kind }}", "string"),
         ("outcome", "not_configured", "string"),
         ("summary", "={{ ($json.error && typeof $json.error === 'string') ? $json.error : 'The call could not be placed.' }}", "string"),
         ("transcript", "={{ [] }}", "array"),
@@ -82,11 +85,12 @@ nodes = [
     ]),
     node("Wait before checking", "n8n-nodes-base.wait", 1.1, [1340, 40],
          {"resume": "timeInterval", "amount": POLL_SECONDS, "unit": "seconds"}, webhookId=str(uuid.uuid5(uuid.NAMESPACE_URL, "karyakarta-voice/wait"))),
-    http("Check call", [1560, 40], "GET", BA + f"/api/cases/{CA}/voice-chase/attempts/{{{{ {PLACED}.attempt_id }}}}", onError="continueRegularOutput"),
+    http("Check call", [1560, 40], "GET", BA + f"/api/cases/{CA}/voice-chase/attempts/{{{{ {PLACED}.attempt_id }}}}?kind={{{{ {KIND_A} }}}}", onError="continueRegularOutput"),
     if_node("Call finished or timed out?", [1780, 40],
             f"={{{{ ($json.data && $json.data.state === 'done') || $runIndex >= {MAX_POLLS - 1} }}}}", "boolean", "true"),
     setnode("Result from call", [2000, 40], [
         ("case_id", "={{ $('Settings (start)').first().json.case_id }}", "string"),
+        ("kind", "={{ $('Settings (start)').first().json.kind }}", "string"),
         ("outcome", "={{ ($json.data && $json.data.state === 'done') ? $json.data.outcome : 'failed' }}", "string"),
         ("summary", "={{ ($json.data && $json.data.state === 'done') ? $json.data.summary : 'No result arrived from Sarvam within 15 minutes. Check the attempt in the Sarvam console.' }}", "string"),
         ("transcript", "={{ ($json.data && $json.data.transcript) ? $json.data.transcript : [] }}", "array"),
@@ -101,6 +105,7 @@ nodes = [
          webhookId="karyakarta-voice-result"),
     setnode("Result from webhook", [2000, 560], [
         ("case_id", "={{ $json.body.case_id }}", "string"),
+        ("kind", "={{ $json.body.kind || 'chase' }}", "string"),
         ("outcome", "={{ $json.body.outcome }}", "string"),
         ("summary", "={{ $json.body.summary || '' }}", "string"),
         ("transcript", "={{ $json.body.transcript || [] }}", "array"),
@@ -111,13 +116,14 @@ nodes = [
     setnode("Settings (result)", [2220, 300], [
         ("backend_url", "http://host.docker.internal:8765", "string"),
         ("case_id", "={{ $json.case_id }}", "string"),
+        ("kind", "={{ $json.kind }}", "string"),
         ("outcome", "={{ $json.outcome }}", "string"),
         ("summary", "={{ $json.summary }}", "string"),
         ("transcript", "={{ $json.transcript }}", "array"),
         ("call_id", "={{ $json.call_id }}", "string"),
     ]),
     http("Record call on case", [2440, 300], "POST", BB + f"/api/cases/{CB}/voice-chase/result",
-         body="={{ (() => { const r = $('Settings (result)').first().json; return JSON.stringify({ outcome: r.outcome, summary: r.summary || null, transcript: (r.transcript && r.transcript.length) ? r.transcript : null, call_id: r.call_id || null }); })() }}"),
+         body="={{ (() => { const r = $('Settings (result)').first().json; return JSON.stringify({ kind: r.kind || 'chase', outcome: r.outcome, summary: r.summary || null, transcript: (r.transcript && r.transcript.length) ? r.transcript : null, call_id: r.call_id || null }); })() }}"),
     if_node("Worth remembering?", [2660, 300], "={{ $json.data.worth_remembering }}", "boolean", "true"),
     http("Get call memory summary", [2900, 220], "GET", BB + f"/api/voice-calls/{CALL_ID}/memory-summary", onError="continueRegularOutput"),
     # Remember with a unique file name prefix: Cognee Cloud answers 409 when a second upload re-uses a file name with different
