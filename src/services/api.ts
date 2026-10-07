@@ -1,3 +1,4 @@
+import { activateStaticMode, isStaticMode, loadSnapshot, onStaticModeChange, staticApi, staticFileUrl } from '@/services/staticDemo';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export const API_URL: string = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:8765';
@@ -92,7 +93,18 @@ export interface AuditEventMsg {
 
 // ---------- fetch helper (unwraps the {ok, data} envelope) ----------
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, init);
+  if (isStaticMode()) return staticApi<T>(path, init);
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, init);
+  } catch (e) {
+    // The backend cannot be reached at all (a network error, not an HTTP error): fall back to the recorded snapshot when there is one.
+    if (e instanceof TypeError && (await loadSnapshot())) {
+      activateStaticMode();
+      return staticApi<T>(path, init);
+    }
+    throw e;
+  }
   if (!res.ok) {
     let detail = res.statusText;
     try {
@@ -110,6 +122,8 @@ export const postJson = <T,>(path: string, body: unknown) =>
   api<T>(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
 export function documentUrl(doc: Pick<CaseDocumentRecord, 'file_url'>): string {
+  const id = isStaticMode() ? doc.file_url.match(/documents\/([^/]+)\/file/)?.[1] : undefined;
+  if (id) return staticFileUrl(id);
   return `${API_URL}${doc.file_url}`;
 }
 
@@ -124,7 +138,7 @@ const listeners = new Set<Listener>();
 let hub: EventSource | null = null;
 
 function openHub() {
-  if (hub || typeof EventSource === 'undefined' || listeners.size === 0 || (typeof document !== 'undefined' && document.hidden)) return;
+  if (isStaticMode() || hub || typeof EventSource === 'undefined' || listeners.size === 0 || (typeof document !== 'undefined' && document.hidden)) return;
   hub = new EventSource(`${API_URL}/api/events`);
   hub.addEventListener('audit', (m) => {
     const ev = JSON.parse((m as MessageEvent).data) as AuditEventMsg;
@@ -136,6 +150,8 @@ function closeHub() {
   hub?.close();
   hub = null;
 }
+
+onStaticModeChange(closeHub);                                  // preview mode has no live stream
 
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => {

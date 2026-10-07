@@ -7,6 +7,7 @@ import { MerchantAuthScreen } from '@/components/merchant/MerchantAuthScreen';
 import { MerchantUploadScreen } from '@/components/merchant/MerchantUploadScreen';
 import { DEMO_MERCHANT_CASE, sendCaseAction, uploadDocuments } from '@/services/api';
 import { useLiveCase, useLiveCases } from '@/services/useLiveCase';
+import { useStaticMode } from '@/services/staticDemo';
 import { useEffect, useState } from 'react';
 
 type Route = 'landing' | 'login' | 'merchant-stage1' | 'merchant-account' | 'merchant-upload' | 'merchant-action' | 'kam' | 'case' | 'cpv';
@@ -83,8 +84,13 @@ function App() {
     void kam.reload();
   };
 
-  const offline = merchant.offline || kam.offline;
-  const banner = offline ? (
+  const preview = useStaticMode();
+  const offline = !preview && (merchant.offline || kam.offline);
+  const banner = preview ? (
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] max-w-[92vw] bg-[#e6f7fc] text-[#002970] border border-[#cfe9fc] rounded-xl px-4 py-2 text-xs font-bold shadow-lg text-center">
+      Preview mode: a recorded snapshot of the synthetic Sharma Foods case. You can browse the documents, the checks and the filled MAF; uploads and actions need the backend.
+    </div>
+  ) : offline ? (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] bg-amber-100 text-amber-900 border border-amber-300 rounded-xl px-4 py-2 text-xs font-bold shadow-lg">
       Backend not reachable. Showing sample data. Start it with backend/run.bat (http://localhost:8765).
     </div>

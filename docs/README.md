@@ -5,6 +5,7 @@
 | [01_ARCHITECTURE.md](01_ARCHITECTURE.md) | Judges, engineers | Agentic architecture: system context, the seven AI teammates, container view, sequences, routing, data model, guardrails, resilience, seams |
 | [02_TECHNICAL_AND_FEATURE_DOCUMENTATION.md](02_TECHNICAL_AND_FEATURE_DOCUMENTATION.md) | Engineers, judges | In-depth reference: honest status matrix, stack, features by persona, pipeline, the 10 checks, Cognee, voice, n8n, API, data model, tests, measured performance, limitations |
 | [03_USP_AND_AI_TEAMMATES.md](03_USP_AND_AI_TEAMMATES.md) | The team, judges | USP, the AI teammates (job, tools, autonomy, hard limits, proof), autonomy ladder, pitch scripts, what not to claim |
+| [11_FRONTEND_ONLY_PREVIEW.md](11_FRONTEND_ONLY_PREVIEW.md) | Anyone deploying | A recorded read-only snapshot of the Sharma case that the frontend shows with no backend: what works, how to deploy and refresh it |
 | [10_DEMO_VIDEO_SCRIPT.md](10_DEMO_VIDEO_SCRIPT.md) | The presenter | How to make the demo: preparation, recording, the 19-screen flow and the full narration (about 10 minutes) |
 | [09_EVALUATOR_SCRIPT.md](09_EVALUATOR_SCRIPT.md) | The presenters | A spoken script for the evaluators: document intelligence, the business rules by entity type, the four conflicts, the voice call, and the rest of the Sharma case, with answers to likely questions |
 | [07_DEMO_RUNBOOK.md](07_DEMO_RUNBOOK.md) | The presenters | The whole demo in about 12 minutes: the day-before checklist, the ten acts with what to say, fallbacks, what not to claim |
