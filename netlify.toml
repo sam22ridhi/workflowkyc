@@ -1,0 +1,14 @@
+# Netlify: the frontend only. Set VITE_API_URL (Site settings > Environment variables) to the backend's public address.
+# For a frontend-only preview with no backend, set VITE_STATIC_DEMO=true instead (docs/11_FRONTEND_ONLY_PREVIEW.md).
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# single-page app: every route loads index.html (real files such as /demo/snapshot.json are served as they are)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

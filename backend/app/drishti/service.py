@@ -21,7 +21,7 @@ from pathlib import Path
 
 from sqlmodel import Session, select
 
-from app import config
+from app import config, storage
 from app.db import audit, engine
 from app.drishti import geo, vision
 from app.models import STAGE_CPV, STAGE_VCIP, Case, CpvSession, Document, utcnow
@@ -145,6 +145,7 @@ def store_capture(session: Session, s: CpvSession, case: Case, kind: str, image:
     folder.mkdir(parents=True, exist_ok=True)
     path = folder / f"{s.id}_{kind}.jpg"
     path.write_bytes(image)
+    storage.save_remote(path)
     meta = {"path": str(path), "sha256": hashlib.sha256(image).hexdigest(), "lat": lat, "lon": lon, "accuracy_m": round(accuracy, 1), "heading": hd,
             "client_ts": when.isoformat(), "server_ts": utcnow().isoformat(), "skew_s": round(skew, 1), "source": source,
             "width": width, "height": height, "bytes": len(image), "exif": vision.exif_info(image)}
@@ -294,7 +295,7 @@ def analyse(session_id: str) -> dict:
         scores = {}
         for kind in REQUIRED:
             try:
-                scores[kind] = vision.replay_score(Path(s.captures[kind]["path"]).read_bytes())
+                scores[kind] = vision.replay_score(storage.ensure_local(Path(s.captures[kind]["path"])).read_bytes())
             except Exception as e:  # noqa: BLE001
                 scores[kind] = {"score": 1.0, "note": f"could not be analysed ({e})"}
         worst = max(v["score"] for v in scores.values())

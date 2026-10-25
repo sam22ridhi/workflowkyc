@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 
 from app.checks import cross_check
 from app.db import engine
-from app.models import Case, CheckResult, Document
+from app.models import Case, CheckResult, CrmOverride, Document
 
 CASE = "KYB-20814"
 
@@ -61,7 +61,7 @@ def hero(client):
     with Session(engine) as s:
         for row in list(s.exec(select(Document).where(Document.case_id == CASE))):
             s.delete(row)
-        for row in list(s.exec(select(CheckResult).where(CheckResult.case_id == CASE))):
+        for row in list(s.exec(select(CheckResult).where(CheckResult.case_id == CASE))) + list(s.exec(select(CrmOverride).where(CrmOverride.case_id == CASE))):
             s.delete(row)
         case = s.get(Case, CASE)
         case.operating_address, case.stage, case.status, case.route, case.summary = before

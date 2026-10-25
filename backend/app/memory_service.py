@@ -11,7 +11,7 @@ import re
 
 from sqlmodel import Session, select
 
-from app import config
+from app import config, storage
 from app.db import audit, engine
 from app.doctypes import DOC_TYPES
 from app.memory import MemoryUnavailable, get_store
@@ -64,9 +64,9 @@ def store_document(doc_id: str) -> dict:
         if not doc.fields:
             return _mark(s, doc, "failed", "Document has no extracted fields yet.", [])
         try:
-            res = get_store().add_document(dataset_name(case), file_path=doc.path, filename=doc.filename,
+            res = get_store().add_document(dataset_name(case), file_path=str(storage.ensure_local(doc.path)), filename=doc.filename,
                                            mime=doc.mime, summary_text=document_summary(doc, case))
-        except (MemoryUnavailable, OSError) as e:
+        except (MemoryUnavailable, OSError) as e:      # FileNotFoundError (a file that cannot be restored) is an OSError
             return _mark(s, doc, "failed", str(e), [])
         except Exception as e:  # noqa: BLE001 - memory must never take the pipeline down
             log.exception("memory add failed for %s", doc_id)

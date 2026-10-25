@@ -16,9 +16,15 @@ PORT = int(os.environ.get("PORT", "8765"))
 CORS_ORIGINS = [o.strip() for o in os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
 DEMO_MODE = _bool("DEMO_MODE")
 
-DB_PATH = Path(os.environ.get("KARYAKARTA_DB", BASE_DIR / "karyakarta.db"))
-STORAGE_DIR = Path(os.environ.get("KARYAKARTA_STORAGE", BASE_DIR / "storage"))
-STORAGE_DIR.mkdir(exist_ok=True)
+DB_PATH = Path(os.environ.get("KARYAKARTA_DB", BASE_DIR / "karyakarta.db"))          # SQLite file (local development, tests)
+# DATABASE_URL switches the backend to Postgres (Supabase). Empty: SQLite at DB_PATH. For Supabase use the "Connection pooling" string (port 6543).
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+STORAGE_DIR = Path(os.environ.get("KARYAKARTA_STORAGE", BASE_DIR / "storage"))        # working copy of uploaded files (always local: the pipeline needs real paths)
+STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+# Supabase Storage keeps the durable copy of every uploaded file, so a restart or redeploy of the server loses nothing. Empty: local disk only.
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")                # https://<project-ref>.supabase.co
+SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "").strip()             # the service_role key: server-side only, never in the frontend
+SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET", "karyakarta-files").strip()       # a PRIVATE bucket
 
 N8N_WEBHOOK_URL = os.environ.get("N8N_WEBHOOK_URL", "").strip()
 N8N_FALLBACK_INPROCESS = _bool("N8N_FALLBACK_INPROCESS", True)

@@ -2,6 +2,7 @@ fastapi
 httpx
 numpy
 pillow
+psycopg[binary]
 pytest
 python-dotenv
 python-multipart

@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from typing import Literal
 
-from app import case_admin, extraction
+from app import case_admin, extraction, storage
 from app.db import audit, get_session
 from app.doctypes import DOC_TYPES
 from app.models import Document, utcnow
@@ -38,9 +38,10 @@ def delete_document(doc_id: str, actor: Literal["merchant", "kam", "compliance",
 def document_file(doc_id: str, session: Session = Depends(get_session)):
     """Streams the original upload for the in-browser viewer (inline, correct content-type)."""
     doc = get_doc(session, doc_id)
-    path = Path(doc.path)
-    if not path.exists():
-        raise HTTPException(410, "Stored file is missing on disk")
+    try:
+        path = storage.ensure_local(Path(doc.path))
+    except FileNotFoundError:
+        raise HTTPException(410, "Stored file is missing") from None
     return FileResponse(path, media_type=doc.mime, filename=doc.filename, content_disposition_type="inline")
 
 

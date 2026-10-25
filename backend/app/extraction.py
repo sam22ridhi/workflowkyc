@@ -11,7 +11,7 @@ import time
 
 from sqlmodel import Session
 
-from app import config
+from app import config, storage
 from app.checks.validators import check_document, summarise
 from app.db import audit, engine
 from app.doctypes import DOC_TYPES
@@ -81,7 +81,7 @@ def extract_document(doc_id: str) -> dict:
         try:
             raw_store = dict(doc.raw or {})
             if doc.doc_type not in SCHEMAS:  # unknown: OCR first, classify by keywords, then extract
-                dg = _call("digitise", doc.sha256, lambda: sarvam.digitise(doc.path), note)
+                dg = _call("digitise", doc.sha256, lambda: sarvam.digitise(str(storage.ensure_local(doc.path))), note)
                 raw_store["digitise"] = dg["raw"]
                 guessed, hits = classify_text(digitise_text(dg["raw"]))
                 if guessed == "unknown":
@@ -95,7 +95,7 @@ def extract_document(doc_id: str) -> dict:
                 audit(s, doc.case_id, "agent", "Document classified", f"{doc.filename} → {DOC_TYPES[guessed]} ({hits} keyword hits)", "ai", doc.id)
 
             schema = SCHEMAS[doc.doc_type]
-            ex = _call(f"extract-{doc.doc_type}", doc.sha256, lambda: sarvam.extract(doc.path, schema), note)
+            ex = _call(f"extract-{doc.doc_type}", doc.sha256, lambda: sarvam.extract(str(storage.ensure_local(doc.path)), schema), note)
             raw_store["extract"] = ex["raw"]
             fields = to_fields(ex["raw"], schema)
             if "digitise" in raw_store:   # classification already paid for the layout pass: boxes are free
@@ -141,7 +141,7 @@ def locate_document(doc_id: str) -> str:
             return "ready"
         try:
             note = lambda msg: audit(s, doc.case_id, "agent", "Using cached result", f"{doc.filename}: {msg}", "warning", doc.id)  # noqa: E731
-            dg = _call("digitise", doc.sha256, lambda: sarvam.digitise(doc.path), note)
+            dg = _call("digitise", doc.sha256, lambda: sarvam.digitise(str(storage.ensure_local(doc.path))), note)
             fields = locate_boxes({k: dict(v) for k, v in doc.fields.items()}, dg["raw"])
             doc.fields, doc.raw = fields, {**(doc.raw or {}), "digitise": dg["raw"]}
             doc.updated_at = utcnow()

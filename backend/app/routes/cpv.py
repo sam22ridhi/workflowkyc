@@ -8,7 +8,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlmodel import Session
 
-from app import config
+from app import config, storage
 from app.db import audit, get_session
 from app.drishti import service
 from app.models import Case, CpvSession
@@ -116,7 +116,10 @@ def case_image(case_id: str, kind: str, session: Session = Depends(get_session))
     cap = ((s.captures if s else None) or {}).get(kind)
     if not cap:
         raise HTTPException(404, "No such photo")
-    return FileResponse(cap["path"], media_type="image/jpeg")
+    try:
+        return FileResponse(storage.ensure_local(cap["path"]), media_type="image/jpeg")
+    except FileNotFoundError:
+        raise HTTPException(410, "The photo is no longer stored") from None
 
 
 class CpvMemoryResult(BaseModel):

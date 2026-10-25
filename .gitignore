@@ -25,6 +25,8 @@ dist-ssr
 backend/.venv
 backend/storage
 backend/*.db
+backend/*.db-*
+backend/*.db.bad
 __pycache__
 backend/debug_out
 

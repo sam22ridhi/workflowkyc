@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 
-from app import case_admin, config, pipeline
+from app import case_admin, config, pipeline, storage
 from app import crm_form as crm_builder
 from app.checks import cross_check
 from app.registry import mock_registry
@@ -94,6 +94,7 @@ def _save_one(case_id: str, upload: UploadFile) -> tuple[str, Path, int, str] | 
     except ValueError as e:
         dest.unlink(missing_ok=True)
         return str(e)
+    storage.save_remote(dest)                                  # durable copy (Supabase Storage); a no-op without a bucket
     return doc_id, dest, size, sha.hexdigest()
 
 

@@ -4,13 +4,12 @@ Deleting a file keeps the case honest: the checks are re-run on what is left (or
 the file leaves the disk, and the copy in the merchant twin (Cognee) is removed when it can be. Every step is written to the timeline.
 """
 import logging
-import shutil
 from pathlib import Path
 
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
-from app import config
+from app import config, storage
 from app.checks import cross_check
 from app.db import audit
 from app.memory import get_store
@@ -25,10 +24,7 @@ def _dataset(case: Case) -> str:
 
 
 def _remove_file(path: str) -> None:
-    p = Path(path).resolve()
-    root = Path(config.STORAGE_DIR).resolve()
-    if root in p.parents and p.exists():
-        p.unlink()
+    storage.delete(path)
 
 
 def _forget_in_memory(case: Case, doc: Document) -> str:
@@ -87,9 +83,7 @@ def reset_case(session: Session, case: Case) -> dict:
         for row in list(session.exec(select(model).where(model.case_id == case_id))):
             session.delete(row)
     session.commit()
-    folder = (Path(config.STORAGE_DIR) / case_id).resolve()
-    if Path(config.STORAGE_DIR).resolve() in folder.parents and folder.exists():
-        shutil.rmtree(folder, ignore_errors=True)
+    storage.delete_prefix(Path(config.STORAGE_DIR) / case_id)
 
     case = session.get(Case, case_id)
     case.stage, case.status, case.route, case.summary = spec["stage"], spec["status"], None, None
